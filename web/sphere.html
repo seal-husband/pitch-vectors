@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>投球ベクトルの球面</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;700&family=Noto+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.3/plotly.min.js"></script>
+<script src="sphere_data.js"></script>
+<style>
+:root{
+  --ground:#f2f4f6; --panel:#ffffff; --ink:#18202b; --muted:#5a6573; --rule:#d5dbe2;
+  --accent:#b8372b; --accent-soft:#f3dcd8; --grid:#e3e7ec;
+  --serif:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --sans:"Noto Sans JP","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#11151b; --panel:#181d25; --ink:#e4e8ee; --muted:#96a0ad; --rule:#2c343f;
+    --accent:#e46a5c; --accent-soft:#3a2220; --grid:#232a33;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#11151b; --panel:#181d25; --ink:#e4e8ee; --muted:#96a0ad; --rule:#2c343f;
+  --accent:#e46a5c; --accent-soft:#3a2220; --grid:#232a33;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ground);color:var(--ink);font:15px/1.75 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:40px 16px 72px;display:grid;gap:56px}
+header{display:grid;gap:18px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+h1{font:700 clamp(28px,4.4vw,44px)/1.25 var(--serif);margin:0;text-wrap:balance}
+h2{font:700 24px/1.4 var(--serif);margin:0;text-wrap:balance}
+p{margin:0;max-width:68ch}
+.lede{font-size:16px;color:var(--ink)}
+.muted{color:var(--muted)}
+code,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.fact{background:var(--panel);padding:14px 16px;display:grid;gap:4px;align-content:start}
+.fact b{font:500 22px/1.2 var(--mono);font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--muted);line-height:1.5}
+.fact.hot b{color:var(--accent)}
+section{display:grid;gap:16px}
+.head{display:grid;gap:8px}
+.plot{background:var(--panel);border:1px solid var(--rule);min-width:0}
+.two{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:1fr}}
+.side{display:grid;gap:14px}
+.seg{display:inline-flex;border:1px solid var(--rule);background:var(--panel)}
+.seg button{font:500 13px/1 var(--sans);color:var(--muted);background:none;border:0;padding:10px 14px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{color:var(--ink);background:var(--accent-soft)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+th{font-weight:500;color:var(--muted);font-size:12px}
+td.num,th.num{text-align:right}
+.chip{display:inline-block;font:500 11px/1 var(--mono);padding:3px 5px;margin:1px 2px 1px 0;border-radius:2px;color:#fff}
+.note{font-size:13px;color:var(--muted);border-left:2px solid var(--rule);padding-left:12px}
+.note b{color:var(--ink);font-weight:500}
+.scroll{overflow-x:auto}
+.small3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:860px){.small3{grid-template-columns:1fr}}
+footer{font-size:12px;color:var(--muted);border-top:1px solid var(--rule);padding-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow" id="eyebrow">pitch-vectors · 原点E</div>
+  <h1>一球は方向と長さを持つ。<br>球面が保てるのは方向だけ。</h1>
+  <p class="lede">一球を<b>物理ゼロ（無回転）とリーグ速球の球速</b>を原点とする3次元ベクトルで表した。成分は横変化・縦変化・球速差で、球速差は重力の換算 <span class="num">0.63 in/mph</span> でインチに直してある。方向を正積投影の地図に、長さを別の量として並べる。</p>
+  <div class="facts" id="facts"></div>
+</header>
+
+<section>
+  <div class="head">
+    <h2>ベクトルの雲</h2>
+    <p class="muted">一点が一球（無作為抽出）。ドラッグで回転。「向きだけ」に切り替えると、全球を同じ半径の球面へ押しつける——地図が捨てる情報がそのまま見える。</p>
+  </div>
+  <div class="bar">
+    <div class="seg" role="group" aria-label="表示">
+      <button type="button" data-mode="vec" aria-pressed="true">長さあり</button>
+      <button type="button" data-mode="sph" aria-pressed="false">向きだけ（球面）</button>
+    </div>
+    <div class="seg" role="group" aria-label="視点">
+      <button type="button" data-view="free" aria-pressed="true">自由に回す</button>
+      <button type="button" data-view="edge" aria-pressed="false">板を真横から</button>
+      <button type="button" data-view="face" aria-pressed="false">法線の方向から</button>
+    </div>
+    <label class="muted" style="font-size:13px"><input type="checkbox" id="showPlane" checked> 共通平面と法線</label>
+  </div>
+  <div class="plot" id="cloud" style="height:600px"></div>
+  <p class="note" id="planeNote"></p>
+</section>
+
+<section>
+  <div class="head">
+    <h2>方向の地図（全球の正積方位図法）</h2>
+    <p class="muted">球面全体を一枚の円板に。面積が保たれるので、濃さは「その方向にどれだけの球があるか」をどこでも同じ尺度で表す。密度は球面の <span class="num" id="capTxt"></span> の窓で数えた。</p>
+  </div>
+  <div class="two">
+    <div class="plot" id="map" style="aspect-ratio:1/1;min-height:360px"></div>
+    <div class="side">
+      <div class="seg" role="group" aria-label="地図の表示">
+        <button type="button" data-map="dens" aria-pressed="true">密度</button>
+        <button type="button" data-map="pts" aria-pressed="false">一球ずつ</button>
+      </div>
+      <p class="note" id="mapNote"></p>
+      <div class="scroll"><table id="modeTbl"></table></div>
+      <p class="note">★は密度の極大（25°以内で最大）。細線は極大どうしを結ぶ大円——下の断面図はこの線の上を歩いたもの。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <h2>極大のあいだに谷はあるか</h2>
+    <p class="muted">大円に沿って密度を測り、両端のうち低い方を 1 とした。1 を割らなければ谷なし＝ひとつながり。</p>
+  </div>
+  <div class="plot" id="prof" style="height:380px"></div>
+  <p class="note"><b>腕側の三つ（フォーシーム・シンカー・チェンジ）は、どの組でも谷がない。</b>腕側からグラブ側（スイーパー）へ渡るときだけ密度が落ち、チェンジ→スイーパーでは 0.03 まで沈む。ただし大円は数ある道の一本にすぎず、最も低い峠を探す分水界解析はまだやっていない。</p>
+</section>
+
+<section>
+  <div class="head">
+    <h2>同じ方向、ちがう長さ</h2>
+    <p class="muted">球面上でほぼ重なる球種の組を、長さ <span class="num">|v|</span> の分布で比べる。</p>
+  </div>
+  <div class="small3">
+    <div class="plot" id="len0" style="height:260px"></div>
+    <div class="plot" id="len1" style="height:260px"></div>
+    <div class="plot" id="len2" style="height:260px"></div>
+  </div>
+  <p class="note"><b>チェンジとスプリットの平均方向は 4.5° しか離れていない。</b>地図の上では同じ点になる。二つを分けているのは長さ（中央 16.7 対 13.7 インチ）だった。スライダーとカッターは逆に、方向ではなく「物理ゼロに近い」ことが特徴で、球面はこれも消す。</p>
+</section>
+
+<section>
+  <div class="head">
+    <h2>球種の平均方向どうしの離角</h2>
+    <p class="muted">単位は度。暗いほど近い。</p>
+  </div>
+  <div class="plot" id="ang" style="height:500px"></div>
+</section>
+
+<footer id="foot"></footer>
+</div>
+
+<script>
+(function(){
+var D = window.SPHERE;
+var COL = {FF:"#d8342b",SI:"#f08a24",FC:"#9a6b3f",SL:"#2f9e44",ST:"#12a39a",SV:"#a3a51c",
+           CU:"#7b4fc0",KC:"#b58ae0",CH:"#2474c4",FS:"#e0529c"};
+var JP = {FF:"フォーシーム",SI:"シンカー",FC:"カッター",SL:"スライダー",ST:"スイーパー",SV:"スラーブ",
+          CU:"カーブ",KC:"ナックルカーブ",CH:"チェンジ",FS:"スプリット"};
+var T = D.types;
+function tok(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function fmt(n){ return n.toLocaleString("ja-JP"); }
+function chip(t){ return '<span class="chip" style="background:'+COL[t]+'">'+t+'</span>'; }
+var CFG = {displaylogo:false, responsive:true, modeBarButtonsToRemove:["toImage","lasso2d","select2d"]};
+
+/* ---------- header facts ---------- */
+var small = 0.0016;
+var ci = T.indexOf("CH"), fi = T.indexOf("FS");
+document.getElementById("eyebrow").textContent =
+  "pitch-vectors · 原点E · " + D.year + "年 MLB";
+document.getElementById("facts").innerHTML = [
+  ['<b>'+fmt(D.pitches)+'</b>','<span>'+D.pitchers+'投手・レギュラーシーズン（400球以上）</span>',''],
+  ['<b>0.16%</b>','<span>長さ 3 インチ未満＝方向が不安定な球。原点Eはほぼ全球に方向を与える</span>',''],
+  ['<b>'+D.angles[ci][fi].toFixed(1)+'°</b>','<span>チェンジとスプリットの方向差。長さは '+D.cent.CH.L.toFixed(1)+' 対 '+D.cent.FS.L.toFixed(1)+' インチ</span>','hot'],
+  ['<b>'+(100*D.innerShare).toFixed(1)+'%</b>','<span>最良の中心から90°以内（地図の内側の円）に入る球</span>','']
+].map(function(f){ return '<div class="fact '+f[2]+'">'+f[0]+f[1]+'</div>'; }).join("");
+document.getElementById("capTxt").textContent = "1%（半径 " + D.capDeg + "°）";
+document.getElementById("foot").innerHTML =
+  "データ: Statcast "+D.year+"年。原点E = (横 0, 縦 0, リーグ速球 "+D.v0+" mph)。球速差 × "+D.s+
+  " in/mph。左投手は鏡像化（右投手の枠）。雲は "+fmt(D.cloud.t.length)+" 球の無作為抽出、密度・谷・長さは全 "+
+  fmt(D.pitches)+" 球（密度は9万球の抽出）から。src/03_sphere.py, src/04_viz_data.py";
+
+function base(extra){
+  var L = {paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
+    font:{family:tok("--sans"), color:tok("--ink"), size:12},
+    margin:{l:48,r:16,t:16,b:44}, hoverlabel:{font:{family:tok("--mono")}}};
+  for(var k in extra) L[k] = extra[k];
+  return L;
+}
+
+/* ---------- 1. cloud ---------- */
+var mode = "vec";
+function cloudTraces(){
+  var C = D.cloud, R = 16, out = [];
+  T.forEach(function(t, k){
+    var x=[],y=[],z=[];
+    for(var i=0;i<C.t.length;i++){
+      if(C.t[i]!==k) continue;
+      var a=C.x[i], b=C.y[i], c=C.z[i];
+      if(mode==="sph"){ var n=Math.hypot(a,b,c)||1; a=a/n*R; b=b/n*R; c=c/n*R; }
+      x.push(a); y.push(b); z.push(c);
+    }
+    out.push({type:"scatter3d", mode:"markers", name:t+" "+JP[t], x:x, y:y, z:z,
+      marker:{size:2.2, color:COL[t], opacity:.55, line:{width:0}},
+      hovertemplate:t+"<br>横 %{x:.1f}  縦 %{z:.1f}  速度 %{y:.1f} in<extra></extra>"});
+  });
+  out.push({type:"scatter3d", mode:"markers", name:"原点E", x:[0],y:[0],z:[0], showlegend:false,
+    marker:{size:5, color:tok("--ink"), symbol:"diamond"}, hovertemplate:"原点E<extra></extra>"});
+  if(D.plane && mode==="vec" && document.getElementById("showPlane").checked) out = out.concat(planeTraces());
+  return out;
+}
+/* the common plane: data order is (横, 縦, 速度); Plotly's scene is (x=横, y=速度, z=縦) */
+function P3(v){ return {x:v[0], y:v[2], z:v[1]}; }
+function planeGeom(){
+  var P = D.plane, n = P.n, C = D.cloud, m = [0,0,0];
+  for(var i=0;i<C.t.length;i++){ m[0]+=C.x[i]; m[1]+=C.z[i]; m[2]+=C.y[i]; }
+  m = m.map(function(v){ return v/C.t.length; });
+  var off = n[0]*m[0]+n[1]*m[1]+n[2]*m[2] - P.h;
+  var c0 = [m[0]-off*n[0], m[1]-off*n[1], m[2]-off*n[2]];
+  return {c0:c0, n:n, e1:P.e1, e2:P.e2};
+}
+function planeTraces(){
+  var g = planeGeom(), H = 19, xs=[],ys=[],zs=[];
+  [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(function(k){
+    var v = [0,1,2].map(function(j){ return g.c0[j] + H*(k[0]*g.e1[j] + k[1]*g.e2[j]); });
+    var q = P3(v); xs.push(q.x); ys.push(q.y); zs.push(q.z);
+  });
+  var tip = [0,1,2].map(function(j){ return g.c0[j] + 11*g.n[j]; });
+  var a = P3(g.c0), b = P3(tip);
+  var acc = tok("--accent");
+  return [
+    {type:"mesh3d", x:xs, y:ys, z:zs, i:[0,0], j:[1,2], k:[2,3], color:tok("--muted"), opacity:.16,
+     hoverinfo:"skip", showlegend:false, flatshading:true, lighting:{ambient:1, diffuse:0, specular:0}},
+    {type:"scatter3d", mode:"lines", x:xs.concat([xs[0]]), y:ys.concat([ys[0]]), z:zs.concat([zs[0]]),
+     line:{color:tok("--muted"), width:2}, hoverinfo:"skip", showlegend:false},
+    {type:"scatter3d", mode:"lines", x:[a.x,b.x], y:[a.y,b.y], z:[a.z,b.z], line:{color:acc, width:7},
+     hoverinfo:"skip", showlegend:false},
+    {type:"cone", x:[b.x], y:[b.y], z:[b.z], u:[b.x-a.x], v:[b.y-a.y], w:[b.z-a.z], sizemode:"absolute",
+     sizeref:2.6, anchor:"tail", colorscale:[[0,acc],[1,acc]], showscale:false, hoverinfo:"skip"}
+  ];
+}
+var VIEW = "free";
+function viewCam(){
+  if(!D.plane || VIEW==="free") return null;
+  var n = D.plane.n, e;
+  if(VIEW==="face") e = n;                                    // look down the normal
+  else e = [-n[2], 0, n[0]];                                  // horizontal, perpendicular to the normal
+  var L = Math.hypot(e[0],e[1],e[2]), q = P3(e.map(function(v){ return 2.1*v/L; }));
+  return {eye:q, up:{x:0,y:0,z:1}, center:{x:0,y:0,z:0}, projection:{type:"orthographic"}};
+}
+function cloudAnn(){
+  var R = 16;
+  return T.map(function(t){
+    var u = D.cent[t].u, L = mode==="sph" ? R : D.cent[t].L;
+    return {x:u[0]*L, y:u[2]*L, z:u[1]*L, text:"<b>"+t+"</b>", showarrow:false,
+      font:{family:tok("--mono"), size:13, color:COL[t]}, bgcolor:"rgba(0,0,0,0)", yshift:10};
+  });
+}
+function axisStyle(title){
+  return {title:{text:title, font:{size:11}}, gridcolor:tok("--grid"), zerolinecolor:tok("--rule"),
+    showbackground:false, color:tok("--muted"), range:[-26,26]};
+}
+function drawCloud(){
+  Plotly.react("cloud", cloudTraces(), base({
+    margin:{l:0,r:0,t:0,b:0},
+    legend:{orientation:"h", x:0, y:1.02, font:{size:12}, itemsizing:"constant"},
+    scene:{dragmode:"turntable", aspectmode:"cube",
+      xaxis:axisStyle("横変化 in（−腕側 / +グラブ側）"),
+      yaxis:axisStyle("球速差 in（−遅い）"),
+      zaxis:axisStyle("縦変化 in（+浮く）"),
+      camera:viewCam() || {eye:{x:1.35,y:-1.55,z:.75}, projection:{type:"orthographic"}},
+      annotations:cloudAnn()}
+  }), CFG);
+}
+document.querySelectorAll("[data-mode]").forEach(function(b){
+  b.addEventListener("click", function(){
+    mode = b.dataset.mode;
+    document.querySelectorAll("[data-mode]").forEach(function(o){ o.setAttribute("aria-pressed", o===b); });
+    var cam = document.getElementById("cloud")._fullLayout.scene.camera;
+    drawCloud();
+    Plotly.relayout("cloud", {"scene.camera":cam});
+  });
+});
+
+document.querySelectorAll("[data-view]").forEach(function(b){
+  b.addEventListener("click", function(){
+    VIEW = b.dataset.view;
+    document.querySelectorAll("[data-view]").forEach(function(o){ o.setAttribute("aria-pressed", o===b); });
+    var c = viewCam();
+    if(c) Plotly.relayout("cloud", {"scene.camera":c});
+  });
+});
+document.getElementById("showPlane").addEventListener("change", function(){
+  var cam = document.getElementById("cloud")._fullLayout.scene.camera;
+  drawCloud(); Plotly.relayout("cloud", {"scene.camera":cam});
+});
+if(D.plane){
+  var pn = D.plane.n, S0 = D.s;
+  var a = -pn[1]/(pn[2]*S0), bb = -pn[0]/(pn[2]*S0);
+  var tilt = Math.acos(Math.abs(pn[2]))*180/Math.PI;
+  document.getElementById("planeNote").innerHTML =
+    "<b>共通平面</b>　法線 <span class='num'>(横 "+pn[0].toFixed(3)+", 縦 "+pn[1].toFixed(3)+", 速度 "+pn[2].toFixed(3)+
+    ")</span>、速度軸から "+tilt.toFixed(1)+"° 傾く。書き直すと <b>球速 ≈ "+a.toFixed(2)+" × 縦変化 − "+
+    Math.abs(bb).toFixed(2)+" × 横変化 + 投手ごとの定数</b>（mph/in、横はグラブ側が＋）。"+
+    "板の厚み（投手内の標準偏差）は "+D.plane.sd[2].toFixed(2)+" in、面内は "+D.plane.sd[0].toFixed(1)+" と "+
+    D.plane.sd[1].toFixed(1)+" in。描いた面は投手の高さの中央値の位置にある——雲全体の厚みには、投手ごとの球速の差（面が法線方向に平行移動する）も含まれる。";
+}
+
+/* ---------- 2. map ---------- */
+var mapMode = "dens";
+function circle(r){
+  var x=[],y=[]; for(var i=0;i<=180;i++){ var a=i/180*2*Math.PI; x.push(r*Math.cos(a)); y.push(r*Math.sin(a)); }
+  return {x:x,y:y};
+}
+function modeName(m){ return m.mix[0][0]; }
+function pathColor(p){ return p.dip < .6 ? tok("--accent") : tok("--muted"); }
+function drawMap(){
+  var n = D.raster.n, ax = [], z = [];
+  for(var i=0;i<n;i++) ax.push(-2 + 4*i/(n-1));
+  for(var r=0;r<n;r++) z.push(D.raster.z.slice(r*n, (r+1)*n));
+  var dark = tok("--ground").toLowerCase() === "#11151b";
+  var scale = dark
+    ? [[0,"#181d25"],[.08,"#1f3350"],[.25,"#2c5d8f"],[.5,"#5f9bd0"],[.75,"#b7d6ef"],[1,"#ffffff"]]
+    : [[0,"#ffffff"],[.08,"#e2ebf4"],[.25,"#a9c6e2"],[.5,"#5b8fc4"],[.75,"#27578f"],[1,"#0f2748"]];
+  var tr = [];
+  if(mapMode === "dens"){
+    tr.push({type:"heatmap", x:ax, y:ax, z:z, zmin:0, zmax:1, colorscale:scale, zsmooth:"best",
+      showscale:false, hovertemplate:"密度 %{z:.2f}（最大比）<extra></extra>"});
+  } else {
+    T.forEach(function(t,k){
+      var x=[],y=[], C=D.cloud;
+      for(var i=0;i<C.t.length;i++) if(C.t[i]===k){ x.push(C.mx[i]); y.push(C.my[i]); }
+      tr.push({type:"scattergl", mode:"markers", x:x, y:y, name:t, showlegend:false,
+        marker:{size:3, color:COL[t], opacity:.45}, hoverinfo:"skip"});
+    });
+  }
+  [[2,"180°（反対側）"],[Math.SQRT2,"90°"],[2*Math.sin(Math.PI/8),"45°"]].forEach(function(c){
+    var p = circle(c[0]);
+    tr.push({type:"scatter", mode:"lines", x:p.x, y:p.y, hoverinfo:"skip", showlegend:false,
+      line:{color:tok("--rule"), width:c[0]===2?1.5:1, dash:c[0]===2?"solid":"dot"}});
+  });
+  D.paths.forEach(function(p){
+    var a = modeName(D.modes[p.a-1]), b = modeName(D.modes[p.b-1]);
+    tr.push({type:"scatter", mode:"lines", x:p.x, y:p.y, showlegend:false,
+      line:{color:pathColor(p), width:p.dip<.6?2:1.2, dash:p.dip<.6?"solid":"dash"},
+      hovertemplate:a+" ⇔ "+b+"  "+p.sep+"°  谷 "+p.dip.toFixed(2)+"<extra></extra>"});
+  });
+  tr.push({type:"scatter", mode:"markers+text", showlegend:false,
+    x:T.map(function(t){return D.cent[t].x;}), y:T.map(function(t){return D.cent[t].y;}),
+    text:T, textposition:"top center", textfont:{family:tok("--mono"), size:12, color:tok("--ink")},
+    marker:{size:9, color:T.map(function(t){return COL[t];}), line:{color:tok("--panel"), width:1.5}},
+    customdata:T.map(function(t){return [JP[t], D.cent[t].L, D.cent[t].n];}),
+    hovertemplate:"%{text} %{customdata[0]}<br>長さ中央 %{customdata[1]:.1f} in<br>%{customdata[2]:,} 球<extra></extra>"});
+  tr.push({type:"scatter", mode:"markers+text", showlegend:false,
+    x:D.modes.map(function(m){return m.x;}), y:D.modes.map(function(m){return m.y;}),
+    text:D.modes.map(function(m){return String(m.k);}), textposition:"bottom right",
+    textfont:{family:tok("--mono"), size:12, color:tok("--accent")},
+    marker:{symbol:"star", size:11, opacity:.9, color:tok("--accent"), line:{color:tok("--panel"), width:1}},
+    hovertemplate:"極大 %{text}<extra></extra>"});
+  var lab = {"横+":"グラブ側","横−":"腕側","縦+":"浮く","縦−":"沈む","速+":"速い","遅":"遅い"};
+  var ann = Object.keys(D.axes).map(function(k){
+    var p = D.axes[k];
+    return {x:p[0], y:p[1], text:lab[k], showarrow:false, font:{size:11, color:tok("--muted")},
+      bgcolor:tok("--panel"), opacity:.9, borderpad:2};
+  });
+  ann.push({x:0, y:-1.414, text:"90°", showarrow:false, yshift:-8, font:{size:10,color:tok("--muted"),family:tok("--mono")}});
+  ann.push({x:0, y:-2, text:"反対側の極", showarrow:false, yshift:-9, font:{size:10,color:tok("--muted")}});
+  Plotly.react("map", tr, base({
+    margin:{l:8,r:8,t:8,b:8}, showlegend:false,
+    xaxis:{range:[-2.12,2.12], visible:false, fixedrange:true},
+    yaxis:{range:[-2.12,2.12], visible:false, scaleanchor:"x", fixedrange:true},
+    annotations:ann}), CFG);
+}
+document.querySelectorAll("[data-map]").forEach(function(b){
+  b.addEventListener("click", function(){
+    mapMode = b.dataset.map;
+    document.querySelectorAll("[data-map]").forEach(function(o){ o.setAttribute("aria-pressed", o===b); });
+    drawMap();
+  });
+});
+var c = D.centre;
+document.getElementById("mapNote").innerHTML =
+  "中心は <b>内側の半球に最も多くの球が入る方向</b> <span class='num'>("+c.map(function(v){return v.toFixed(2);}).join(", ")+
+  ")</span> で、ほぼ「遅い」の極。ここから見ると地図は変化量の図に近く、左上が腕側で浮く球、右下がグラブ側で沈む球になる。"+
+  "<b>"+(100*D.innerShare).toFixed(1)+"%</b> の球が 90° の円の内側に入る。";
+document.getElementById("modeTbl").innerHTML =
+  "<tr><th>極大</th><th class='num'>密度</th><th>中身（上位3）</th></tr>" +
+  D.modes.map(function(m){
+    return "<tr><td class='num'>★"+m.k+"</td><td class='num'>"+Math.round(100*m.rel)+"%</td><td>"+
+      m.mix.map(function(x){ return chip(x[0])+"<span class='num'>"+Math.round(100*x[1])+"%</span>"; }).join(" ")+"</td></tr>";
+  }).join("");
+
+/* ---------- 3. profiles ---------- */
+function drawProf(){
+  var tr = [], ann = [];
+  D.paths.forEach(function(p){
+    var a = modeName(D.modes[p.a-1]), b = modeName(D.modes[p.b-1]);
+    var x = p.prof.map(function(_,i){ return p.sep * i/(p.prof.length-1); });
+    tr.push({type:"scatter", mode:"lines", x:x, y:p.prof, name:a+" ⇔ "+b+"　谷 "+p.dip.toFixed(2),
+      line:{color:pathColor(p), width:p.dip<.6?2.4:1.4, dash:p.dip<.6?"solid":"dash", shape:"spline"},
+      hovertemplate:a+"から %{x:.0f}°  密度 %{y:.2f}<extra>"+a+" ⇔ "+b+"</extra>"});
+    ann.push({x:p.sep, y:p.prof[p.prof.length-1], text:a+"⇔"+b, showarrow:false, xanchor:"left", xshift:6,
+      font:{size:11, family:tok("--mono"), color:pathColor(p)}});
+  });
+  tr.push({type:"scatter", mode:"lines", x:[0,145], y:[1,1], hoverinfo:"skip", showlegend:false,
+    line:{color:tok("--ink"), width:1, dash:"dot"}});
+  Plotly.react("prof", tr, base({
+    margin:{l:56,r:90,t:12,b:48}, showlegend:false, annotations:ann,
+    xaxis:{title:{text:"始点の極大からの角度（度）"}, range:[0,150], gridcolor:tok("--grid"), zeroline:false, color:tok("--muted")},
+    yaxis:{title:{text:"密度（両端の低い方 = 1）"}, type:"log", gridcolor:tok("--grid"), color:tok("--muted"),
+      tickvals:[.01,.03,.1,.3,1,3,10], ticktext:["0.01","0.03","0.1","0.3","1","3","10"]}
+  }), CFG);
+}
+
+/* ---------- 4. lengths ---------- */
+var PAIRS = [["CH","FS"],["CU","KC"],["FF","SL"]];
+function drawLen(){
+  var e = D.lenEdges, mid = e.slice(0,-1).map(function(v,i){ return (v+e[i+1])/2; });
+  PAIRS.forEach(function(pr, k){
+    var ang = D.angles[T.indexOf(pr[0])][T.indexOf(pr[1])];
+    var tr = pr.map(function(t){
+      return {type:"scatter", mode:"lines", x:mid, y:D.lengths[t], name:t+" "+JP[t]+"（中央 "+D.cent[t].L.toFixed(1)+"）",
+        fill:"tozeroy", line:{color:COL[t], width:2, shape:"spline"}, fillcolor:COL[t]+"22",
+        hovertemplate:t+"  |v| %{x:.1f} in<extra></extra>"};
+    });
+    pr.forEach(function(t){
+      tr.push({type:"scatter", mode:"lines", x:[D.cent[t].L,D.cent[t].L], y:[0,.22], showlegend:false,
+        hoverinfo:"skip", line:{color:COL[t], width:1, dash:"dot"}});
+    });
+    Plotly.react("len"+k, tr, base({
+      margin:{l:40,r:10,t:36,b:40},
+      legend:{orientation:"h", x:0, y:1.22, font:{size:11}},
+      annotations:[{xref:"paper", yref:"paper", x:1, y:.97, xanchor:"right", showarrow:false,
+        text:"方向差 <b>"+ang.toFixed(1)+"°</b>", font:{family:tok("--mono"), size:12, color:tok("--ink")}}],
+      xaxis:{title:{text:"長さ |v|（インチ）"}, range:[0,28], gridcolor:tok("--grid"), zeroline:false, color:tok("--muted")},
+      yaxis:{range:[0,.22], showticklabels:false, gridcolor:tok("--grid"), zeroline:false}
+    }), {displayModeBar:false, responsive:true});
+  });
+}
+
+/* ---------- 5. angle matrix ---------- */
+function drawAng(){
+  var dark = tok("--ground").toLowerCase() === "#11151b";
+  var txt = D.angles.map(function(r,i){ return r.map(function(v,j){ return i===j ? "" : (v<10 ? v.toFixed(1) : Math.round(v)); }); });
+  var sc = dark ? [[0,"#e46a5c"],[.12,"#6e3a36"],[.35,"#2a2f38"],[1,"#181d25"]]
+                : [[0,"#b8372b"],[.12,"#e7a79f"],[.35,"#eef1f4"],[1,"#ffffff"]];
+  Plotly.react("ang", [{type:"heatmap", z:D.angles, x:T, y:T, zmin:0, zmax:180, colorscale:sc,
+    text:txt, texttemplate:"%{text}", textfont:{family:tok("--mono"), size:12, color:tok("--ink")},
+    xgap:1, ygap:1, showscale:false,
+    hovertemplate:"%{y} ⇔ %{x}  %{z:.1f}°<extra></extra>"}], base({
+    margin:{l:44,r:8,t:8,b:36},
+    xaxis:{side:"bottom", tickfont:{family:tok("--mono")}, color:tok("--muted")},
+    yaxis:{autorange:"reversed", tickfont:{family:tok("--mono")}, color:tok("--muted"), scaleanchor:"x"}
+  }), CFG);
+}
+
+function all(){ drawCloud(); drawMap(); drawProf(); drawLen(); drawAng(); }
+all();
+var mq = window.matchMedia("(prefers-color-scheme: dark)");
+if(mq.addEventListener) mq.addEventListener("change", all);
+new MutationObserver(all).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
+})();
+</script>
+</body>
+</html>

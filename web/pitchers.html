@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>持ち球の正面図と側面図</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700&family=Noto+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.3/plotly.min.js"></script>
+<script src="pitchers_data.js"></script>
+<style>
+:root{
+  --ground:#f2f4f6; --panel:#ffffff; --ink:#18202b; --muted:#5a6573; --rule:#d5dbe2; --grid:#e8ecf0;
+  --accent:#b8372b; --accent-soft:#f3dcd8; --band:#e6eaef;
+  --slow:#2a6db5; --fast:#c2412f; --zero:#eceff2; --iso:#9aa5b1; --outline:#18202b;
+  --serif:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --sans:"Noto Sans JP","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#11151b; --panel:#181d25; --ink:#e4e8ee; --muted:#96a0ad; --rule:#2c343f; --grid:#212831;
+    --accent:#ee7a6c; --accent-soft:#3a2220; --band:#222932;
+    --slow:#5b9be0; --fast:#ec6b58; --zero:#2a313b; --iso:#5f6b78; --outline:#0b0e12;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#11151b; --panel:#181d25; --ink:#e4e8ee; --muted:#96a0ad; --rule:#2c343f; --grid:#212831;
+  --accent:#ee7a6c; --accent-soft:#3a2220; --band:#222932;
+  --slow:#5b9be0; --fast:#ec6b58; --zero:#2a313b; --iso:#5f6b78; --outline:#0b0e12;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ground);color:var(--ink);font:15px/1.7 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 16px 64px;display:grid;gap:26px}
+header{display:grid;gap:12px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+h1{font:700 clamp(26px,4vw,38px)/1.3 var(--serif);margin:0;text-wrap:balance}
+p{margin:0;max-width:72ch}
+.lede b{font-weight:500}
+.muted{color:var(--muted)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.controls input{font:15px var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--rule);padding:9px 12px;width:min(340px,100%)}
+.controls button{font:500 13px/1 var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--rule);padding:11px 14px;cursor:pointer}
+.controls button:hover{background:var(--accent-soft)}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.controls .count{font-size:13px;color:var(--muted)}
+.who{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 20px}
+.who h2{font:700 26px/1.3 var(--serif);margin:0}
+.who .meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
+.who .meta b{color:var(--ink);font:500 15px var(--mono)}
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:860px){.charts{grid-template-columns:1fr}}
+.fig{display:grid;gap:6px;min-width:0;align-content:start}
+.fig h3{font:700 17px/1.4 var(--serif);margin:0}
+.fig p{font-size:13px;color:var(--muted)}
+.plot{background:var(--panel);border:1px solid var(--rule);min-width:0;aspect-ratio:1/1;min-height:320px}
+.main{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.main{grid-template-columns:1fr}}
+.side{display:grid;gap:14px;min-width:0}
+.scroll{overflow-x:auto;background:var(--panel);border:1px solid var(--rule)}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:460px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+th{font-weight:500;color:var(--muted);font-size:12px}
+th:first-child,td:first-child{text-align:left}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.tcode{display:inline-flex;align-items:center;gap:7px}
+.sw{width:11px;height:11px;border-radius:50%;display:inline-block;box-shadow:0 0 0 1px var(--outline) inset}
+.bar{position:relative;width:96px;height:12px;display:inline-block;vertical-align:middle;margin-left:6px}
+.bar::before{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--rule)}
+.bar i{position:absolute;top:2px;height:8px}
+.note{font-size:13px;color:var(--muted);border-left:2px solid var(--rule);padding-left:12px}
+.note b{color:var(--ink);font-weight:500}
+.guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.guide div{background:var(--panel);padding:14px 16px;font-size:13px;color:var(--muted);line-height:1.65}
+.guide b{display:block;color:var(--ink);font-weight:500;font-size:14px;margin-bottom:2px}
+footer{font-size:12px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow" id="eyebrow">pitch-vectors · 投手別</div>
+  <h1>持ち球の正面図と側面図</h1>
+  <p class="lede muted">変化量と球速は全投手に共通の一枚の平面にほぼ乗っていて、その平面は<b style="color:var(--ink)">縦変化と球速</b>を結びつけている（1インチ浮くごとに約0.5 mph速い）。そこで変化量図（正面図）の隣に、縦軸を揃えて<b style="color:var(--ink)">球速×縦変化の側面図</b>を置いた。側面図では持ち球が一本の傾いた線に並び、腕の強い投手ほど線が右にずれる。</p>
+</header>
+
+<div class="controls">
+  <input id="q" list="names" placeholder="投手名で検索（例: Misiorowski）" aria-label="投手を検索" autocomplete="off">
+  <datalist id="names"></datalist>
+  <button type="button" id="prev" aria-label="前の投手">← 前</button>
+  <button type="button" id="next" aria-label="次の投手">次 →</button>
+  <span class="count" id="count"></span>
+</div>
+
+<div class="who">
+  <h2 id="pname"></h2>
+  <div class="meta" id="pmeta"></div>
+</div>
+
+<div class="charts">
+  <div class="fig">
+    <h3>正面図：横変化 × 縦変化</h3>
+    <div class="plot" id="chart"></div>
+    <p>いつもの変化量図。点線はこの投手の平面から引いた等球速線。</p>
+  </div>
+  <div class="fig">
+    <h3>側面図：球速 × 縦変化</h3>
+    <div class="plot" id="side"></div>
+    <p>赤線はこの投手の平面（横変化0の位置）、灰色の帯はリーグの投手の中央半分。○は平面が予想する球速で、●との横の隔たりが「変化量のわりに遅い・速い」。</p>
+  </div>
+</div>
+
+<div class="main">
+  <div class="scroll"><table id="tbl"></table></div>
+  <div class="side">
+    <p class="note" id="hnote"></p>
+    <p class="note" id="pnote"></p>
+  </div>
+</div>
+
+<div class="guide">
+  <div><b>縦軸は共通</b>二つの図は縦変化を共有する。正面図の球種を水平に右へたどると、側面図の同じ球種に行き着く。</div>
+  <div><b>側面図の傾いた線＝平面</b>球速 = c + <span class="num" id="gA"></span>×縦変化 − <span class="num" id="gB"></span>×横変化。c だけが投手ごとで、線の左右の位置になる。</div>
+  <div><b>○と●の隔たり</b>●が○より左なら、その球は変化の形から見込まれるより遅い。チェンジやスプリットは多くの投手で左にずれる。</div>
+  <div><b>色は Baseball Savant の球種色</b>小さな点は各球種から最大60球。左投手は右投手の向きに鏡像化しているので、正面図の左が常に腕側。</div>
+</div>
+
+<footer id="foot"></footer>
+</div>
+
+<script>
+(function(){
+var D = window.PITCHERS, P = D.pitchers;
+/* Baseball Savant / Statcast pitch colours */
+var COL = {FF:"#D22D49",SI:"#FE9D00",FC:"#933F2C",FA:"#888888",SL:"#EEE716",ST:"#DDB33A",SV:"#93AFD4",
+           CU:"#00D1ED",KC:"#6236CD",CS:"#0068FF",CH:"#1DBE3A",FS:"#3BACAC",FO:"#55CCAB",
+           KN:"#3C44CD",EP:"#888888",PO:"#888888",UN:"#888888"};
+var JP = {FF:"フォーシーム",SI:"シンカー",FC:"カッター",FA:"速球",SL:"スライダー",ST:"スイーパー",SV:"スラーブ",
+          CU:"カーブ",KC:"ナックルカーブ",CS:"スローカーブ",CH:"チェンジ",FS:"スプリット",FO:"フォーク"};
+var R = 26, VR = [64, 104], CLAMP = 4;
+function tok(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function hex(c){ c = c.replace("#",""); return [0,2,4].map(function(i){ return parseInt(c.substr(i,2),16); }); }
+function mix(a,b,t){ var A=hex(a),B=hex(b); return "rgb("+A.map(function(v,i){ return Math.round(v+(B[i]-v)*t); }).join(",")+")"; }
+function resCol(r){
+  var t = Math.max(-1, Math.min(1, r/CLAMP));
+  return t < 0 ? mix(tok("--zero"), tok("--slow"), Math.pow(-t,.8)) : mix(tok("--zero"), tok("--fast"), Math.pow(t,.8));
+}
+function sgn(v, d){ return (v>0?"+":v<0?"−":"±") + Math.abs(v).toFixed(d==null?1:d); }
+function col(t){ return COL[t] || "#888888"; }
+
+document.getElementById("gA").textContent = D.a.toFixed(2);
+document.getElementById("gB").textContent = Math.abs(D.b).toFixed(2);
+document.getElementById("eyebrow").textContent = "pitch-vectors · 投手別 · " + D.year + "年 MLB";
+document.getElementById("foot").innerHTML =
+  "Statcast "+D.year+"年レギュラーシーズン、400球以上の "+P.length+" 投手。使用率3%以上かつ30球以上の球種を表示。"+
+  "平面の式 球速 = "+D.a.toFixed(3)+"×縦 "+(D.b<0?"− ":"+ ")+Math.abs(D.b).toFixed(3)+"×横 + c（mph/in、横はグラブ側が＋）"+
+  "は全投手の持ち球の形から求めた共通の値。c は投手ごとで、球種ごとの（実球速 − 式）の中央値。"+
+  "球種色は Baseball Savant。src/08_the_plane.py, src/10_pitcher_cards_data.py";
+
+document.getElementById("names").innerHTML = P.map(function(p){ return '<option value="'+p.name+'">'; }).join("");
+
+var cur = 0;
+(function(){
+  var def = P.findIndex(function(p){ return p.name==="Misiorowski, Jacob"; });
+  cur = def >= 0 ? def : 0;
+  try{
+    var saved = localStorage.getItem("pv-pitcher");
+    if(saved){ var k = P.findIndex(function(p){ return String(p.id)===saved; }); if(k>=0) cur = k; }
+  }catch(e){}
+})();
+
+function layoutBase(){
+  return {paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
+    font:{family:tok("--sans"), color:tok("--ink"), size:12}, margin:{l:52,r:14,t:14,b:46},
+    hoverlabel:{font:{family:tok("--mono")}}, showlegend:false};
+}
+var CFG = {displaylogo:false, responsive:true, displayModeBar:false};
+function yAxis(){
+  return {title:{text:"縦変化 in（重力を除く）", font:{size:12}}, range:[-R,R], dtick:5, zeroline:true,
+    zerolinecolor:tok("--rule"), gridcolor:tok("--grid"), color:tok("--muted"), fixedrange:true};
+}
+function dots(p, xk){
+  var tr = [];
+  p.types.forEach(function(t){
+    var k = D.types.indexOf(t.t), x=[], y=[];
+    for(var i=0;i<p.dots.t.length;i++) if(p.dots.t[i]===k){ x.push(p.dots[xk][i]); y.push(p.dots.y[i]); }
+    tr.push({type:"scatter", mode:"markers", x:x, y:y, hoverinfo:"skip",
+      marker:{size:4, color:col(t.t), opacity:.4, line:{width:0}}});
+  });
+  return tr;
+}
+function league(xk){
+  return {type:"scattergl", mode:"markers", x:D.league[xk], y:D.league.y, hoverinfo:"skip",
+    marker:{size:4, color:tok("--iso"), opacity:.2}};
+}
+function means(p, xk, labelPos){
+  return {type:"scatter", mode:"markers+text",
+    x:p.types.map(function(t){ return xk==="v" ? t.v : t.x; }), y:p.types.map(function(t){ return t.y; }),
+    text:p.types.map(function(t){ return "<b>"+t.t+"</b>"; }), textposition:labelPos,
+    textfont:{family:tok("--mono"), size:12, color:tok("--ink")},
+    marker:{size:17, color:p.types.map(function(t){ return col(t.t); }), line:{color:tok("--outline"), width:1.5}},
+    customdata:p.types.map(function(t){ return [JP[t.t]||t.t, t.v, t.v - t.r, sgn(t.r), Math.round(100*t.share)]; }),
+    hovertemplate:"%{customdata[0]}<br>球速 %{customdata[1]:.1f} mph<br>平面が予想する球速 %{customdata[2]:.1f}"+
+      "<br>ずれ %{customdata[3]} mph<br>使用率 %{customdata[4]}%<extra></extra>"};
+}
+
+/* ---- front: 横 × 縦 with iso-speed lines of this pitcher's plane */
+function drawFront(p){
+  var tr = [league("x")], ann = [];
+  var preds = p.types.map(function(t){ return t.v - t.r; });
+  var lo = Math.floor(Math.min.apply(null, preds)/2)*2 - 4, hi = Math.ceil(Math.max.apply(null, preds)/2)*2 + 4;
+  for(var s=lo; s<=hi; s+=2){
+    // 縦 = (s − c − b·横) / a
+    var y1 = (s - p.c - D.b*(-R))/D.a, y2 = (s - p.c - D.b*R)/D.a;
+    if(Math.max(y1,y2) < -R || Math.min(y1,y2) > R) continue;
+    tr.push({type:"scatter", mode:"lines", x:[-R,R], y:[y1,y2], hoverinfo:"skip",
+      line:{color:tok("--iso"), width:s%4===0?1.2:.6, dash:"dot"}});
+    if(s%4===0){
+      var lx = R, ly = y2;
+      if(ly > R){ ly = R; lx = (s - p.c - D.a*R)/D.b; }
+      if(ly >= -R && lx >= -R)
+        ann.push({x:lx, y:ly, text:s+" mph", showarrow:false, xanchor:"right", yanchor:"bottom", yshift:1,
+          font:{family:tok("--mono"), size:10, color:tok("--muted")}});
+    }
+  }
+  tr = tr.concat(dots(p, "x"));
+  tr.push(means(p, "x", p.types.map(function(t){ return t.x > 14 ? "middle left" : "middle right"; })));
+  ann.push({xref:"paper", yref:"paper", x:0, y:0, xanchor:"left", yanchor:"bottom", showarrow:false,
+    text:"← 腕側", font:{size:11, color:tok("--muted")}});
+  ann.push({xref:"paper", yref:"paper", x:1, y:0, xanchor:"right", yanchor:"bottom", showarrow:false,
+    text:"グラブ側 →", font:{size:11, color:tok("--muted")}});
+  var L = layoutBase();
+  L.xaxis = {title:{text:"横変化 in", font:{size:12}}, range:[-R,R], dtick:5, zeroline:true,
+    zerolinecolor:tok("--rule"), gridcolor:tok("--grid"), color:tok("--muted"), fixedrange:true};
+  L.yaxis = yAxis(); L.annotations = ann;
+  Plotly.react("chart", tr, L, CFG);
+}
+
+/* ---- side: 球速 × 縦. The plane at 横 = 0 is the line 球速 = c + a·縦 */
+function drawSide(p){
+  var q = D.cq, acc = tok("--accent"), tr = [], ann = [];
+  var line = function(c){ return {x:[c + D.a*(-R), c + D.a*R], y:[-R, R]}; };
+  var b1 = line(q[1]), b3 = line(q[3]);
+  tr.push({type:"scatter", mode:"lines", x:b1.x.concat(b3.x.slice().reverse(), [b1.x[0]]),
+    y:b1.y.concat(b3.y.slice().reverse(), [b1.y[0]]), fill:"toself", fillcolor:tok("--band"),
+    line:{width:0}, hoverinfo:"skip"});
+  var lm = line(q[2]);
+  tr.push({type:"scatter", mode:"lines", x:lm.x, y:lm.y, hoverinfo:"skip", line:{color:tok("--iso"), width:1, dash:"dot"}});
+  tr.push(league("v"));
+  tr = tr.concat(dots(p, "v"));
+  var lp = line(p.c);
+  tr.push({type:"scatter", mode:"lines", x:lp.x, y:lp.y, hoverinfo:"skip", line:{color:acc, width:2.2}});
+  // predicted speed (○) and the gap to the actual (●)
+  p.types.forEach(function(t){
+    tr.push({type:"scatter", mode:"lines", x:[t.v - t.r, t.v], y:[t.y, t.y], hoverinfo:"skip",
+      line:{color:col(t.t), width:3}});
+  });
+  tr.push({type:"scatter", mode:"markers", x:p.types.map(function(t){ return t.v - t.r; }),
+    y:p.types.map(function(t){ return t.y; }), hoverinfo:"skip",
+    marker:{size:11, color:"rgba(0,0,0,0)", line:{color:p.types.map(function(t){ return col(t.t); }), width:2.2}}});
+  tr.push(means(p, "v", "middle right"));
+  ann.push({x:lp.x[1], y:R, xanchor:"right", yanchor:"top", showarrow:false, xshift:-4, yshift:-2,
+    text:"この投手 c = "+p.c.toFixed(1), font:{family:tok("--mono"), size:11, color:acc}});
+  ann.push({x:lm.x[0], y:-R, xanchor:"left", yanchor:"bottom", showarrow:false, xshift:4, yshift:2,
+    text:"リーグ中央 "+q[2].toFixed(1), font:{family:tok("--mono"), size:10, color:tok("--muted")}});
+  ann.push({xref:"paper", yref:"paper", x:0, y:0, xanchor:"left", yanchor:"bottom", showarrow:false,
+    text:"← 遅い", font:{size:11, color:tok("--muted")}});
+  ann.push({xref:"paper", yref:"paper", x:1, y:0, xanchor:"right", yanchor:"bottom", showarrow:false,
+    text:"速い →", font:{size:11, color:tok("--muted")}});
+  var L = layoutBase();
+  L.xaxis = {title:{text:"球速 mph", font:{size:12}}, range:VR, dtick:5, zeroline:false,
+    gridcolor:tok("--grid"), color:tok("--muted"), fixedrange:true};
+  L.yaxis = yAxis(); L.annotations = ann;
+  Plotly.react("side", tr, L, CFG);
+}
+
+function drawText(p){
+  document.getElementById("pname").textContent = p.name;
+  document.getElementById("pmeta").innerHTML =
+    "<span>"+(p.hand==="L"?"左投げ（鏡像表示）":"右投げ")+"</span>"+
+    (p.fb ? "<span>主な速球 <b>"+p.fb[0]+" "+p.fb[1].toFixed(1)+"</b> mph</span>" : "")+
+    "<span><b>"+p.total.toLocaleString("ja-JP")+"</b> 球</span>";
+  var rows = p.types.map(function(t){
+    var w = Math.min(1, Math.abs(t.r)/6)*48, c = resCol(t.r);
+    var bar = '<span class="bar"><i style="background:'+c+';'+(t.r<0?'right:50%':'left:50%')+';width:'+w.toFixed(1)+'px"></i></span>';
+    var rank = Math.max(1, Math.round(t.pct*t.peers));
+    return "<tr><td><span class='tcode'><span class='sw' style='background:"+col(t.t)+"'></span>"+
+      "<span class='num'>"+t.t+"</span> "+(JP[t.t]||"")+"</span></td>"+
+      "<td class='num'>"+Math.round(100*t.share)+"%</td>"+
+      "<td class='num'>"+t.v.toFixed(1)+"</td>"+
+      "<td class='num'>"+(t.v - t.r).toFixed(1)+"</td>"+
+      "<td class='num'>"+sgn(t.r)+bar+"</td>"+
+      "<td class='num' title='同じ球種の投手の中で、ずれが小さい（遅い）方からの順位'>"+rank+" / "+t.peers+"</td></tr>";
+  }).join("");
+  document.getElementById("tbl").innerHTML =
+    "<tr><th>球種</th><th>使用率</th><th>球速</th><th>平面の予想</th><th>ずれ mph</th><th>遅い方から</th></tr>" + rows;
+
+  var q = D.cq, diff = p.c - q[2];
+  var cs = P.map(function(o){ return o.c; }).sort(function(a,b){ return b-a; });
+  document.getElementById("hnote").innerHTML =
+    "<b>平面の位置 c = "+p.c.toFixed(1)+" mph</b>（リーグ中央 "+q[2].toFixed(1)+"、"+sgn(diff)+"）。"+
+    P.length+"人中 <b>"+(cs.indexOf(p.c)+1)+"位</b>。"+
+    (diff >= 3 ? "変化の形はそのままに、持ち球全体がリーグより右（速い側）にある。正面図だけでは見えない。"
+      : diff <= -3 ? "持ち球全体がリーグより左（遅い側）にある。球速より変化と制球で勝負する型。"
+      : "持ち球の位置はリーグの標準的な範囲。");
+  var slow = p.types.slice().sort(function(a,b){ return a.r-b.r; })[0];
+  document.getElementById("pnote").innerHTML = p.types.length < 3
+    ? "<b>球種が2つしかない</b>ため、線の位置は2球種の中央値で決まり、ずれは互いに符号が逆になる。解釈は控えめに。"
+    : (slow.r <= -1.5
+      ? "<b>"+(JP[slow.t]||slow.t)+"</b> は変化の形から見込まれるより <b>"+Math.abs(slow.r).toFixed(1)+" mph 遅い</b>。形だけでなく球速そのものを落として打者を外している。"
+      : "どの球種も平面から大きくは外れない。この投手の球速差は、ほぼ縦変化の違いで説明できる。");
+}
+
+function draw(){
+  var p = P[cur];
+  try{ localStorage.setItem("pv-pitcher", String(p.id)); }catch(e){}
+  var q = document.getElementById("q"); q.value = ""; q.placeholder = p.name;
+  document.getElementById("count").textContent = (cur+1) + " / " + P.length;
+  drawText(p); drawFront(p); drawSide(p);
+}
+function go(k){ cur = (k + P.length) % P.length; draw(); }
+document.getElementById("prev").addEventListener("click", function(){ go(cur-1); });
+document.getElementById("next").addEventListener("click", function(){ go(cur+1); });
+document.getElementById("q").addEventListener("change", function(e){
+  var v = e.target.value.trim().toLowerCase();
+  if(!v) return;
+  var k = P.findIndex(function(p){ return p.name.toLowerCase()===v; });
+  if(k < 0) k = P.findIndex(function(p){ return p.name.toLowerCase().indexOf(v) >= 0; });
+  if(k >= 0) go(k);
+});
+draw();
+var mq = window.matchMedia("(prefers-color-scheme: dark)");
+if(mq.addEventListener) mq.addEventListener("change", draw);
+new MutationObserver(draw).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
+})();
+</script>
+</body>
+</html>

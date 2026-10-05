@@ -1,0 +1,15 @@
+# Statcast data: MLB Advanced Media's, personal non-commercial use only -- not redistributed
+data/
+
+# intermediate per-pitch results derived from it, and logs (regenerate with run_all.py)
+output/*.parquet
+output/*.npz
+output/run_all.log
+output/glove_data.js
+
+__pycache__/
+*.pyc
+
+# page data and result tables: built from Statcast by the scripts (see README), not redistributed
+web/*_data.js
+output/*.csv

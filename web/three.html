@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>持ち球の配分の地図</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700&family=Noto+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.3/plotly.min.js"></script>
+<script src="three_data.js"></script>
+<style>
+:root{
+  --ground:#f2f4f6; --panel:#ffffff; --ink:#18202b; --muted:#5a6573; --rule:#d5dbe2; --grid:#dde2e8;
+  --accent:#b8372b; --accent-soft:#f3dcd8; --dot:#7d8896; --outline:#18202b; --nn:#2f64a3;
+  --serif:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --sans:"Noto Sans JP","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#11151b; --panel:#181d25; --ink:#e4e8ee; --muted:#96a0ad; --rule:#2c343f; --grid:#2a323c;
+    --accent:#ee7a6c; --accent-soft:#3a2220; --dot:#8a95a3; --outline:#0b0e12; --nn:#7fa8dc;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#11151b; --panel:#181d25; --ink:#e4e8ee; --muted:#96a0ad; --rule:#2c343f; --grid:#2a323c;
+  --accent:#ee7a6c; --accent-soft:#3a2220; --dot:#8a95a3; --outline:#0b0e12; --nn:#7fa8dc;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ground);color:var(--ink);font:15px/1.7 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:32px 16px 64px;display:grid;gap:22px}
+header{display:grid;gap:12px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+h1{font:700 clamp(26px,4vw,38px)/1.3 var(--serif);margin:0;text-wrap:balance}
+p{margin:0;max-width:76ch}
+.lede b{color:var(--ink);font-weight:500}
+.muted{color:var(--muted)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.axes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+@media (max-width:760px){.axes{grid-template-columns:1fr}}
+.axes div{background:var(--panel);padding:12px 14px;font-size:13px;color:var(--muted);line-height:1.6}
+.axes b{display:block;color:var(--ink);font-weight:500;font-size:14px}
+.axes code{font-family:var(--mono);font-size:12px;color:var(--ink)}
+.split{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;background:var(--panel);border:1px solid var(--rule);padding:12px 16px}
+.split label{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500}
+.split select{font:14px var(--sans);color:var(--ink);background:var(--ground);border:1px solid var(--rule);padding:7px 10px}
+.split .count{font-size:13px;color:var(--muted)}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.controls input{font:15px var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--rule);padding:9px 12px;width:min(300px,100%)}
+.controls button{font:500 13px/1 var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--rule);padding:11px 14px;cursor:pointer}
+.controls button:hover{background:var(--accent-soft)}
+.controls .count{font-size:13px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--rule);background:var(--panel)}
+.seg button{border:0;padding:9px 12px;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{color:var(--ink);background:var(--accent-soft)}
+input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.plot{background:var(--panel);border:1px solid var(--rule);height:min(78vh,720px);min-height:420px}
+.panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.panel{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--rule);padding:14px 16px;display:grid;gap:12px}
+.card h2{font:700 26px/1.3 var(--serif);margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--muted)}
+.coords{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.coords div{background:var(--panel);padding:10px 12px;display:grid;gap:2px}
+.coords span{font-size:12px;color:var(--muted)}
+.coords b{font:500 20px/1.2 var(--mono);font-variant-numeric:tabular-nums}
+.coords i{font-style:normal;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.mix{display:flex;flex-wrap:wrap;gap:4px 12px;font:12px var(--mono);color:var(--muted)}
+.mix span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:10px;height:10px;border-radius:50%;display:inline-block;box-shadow:0 0 0 1px var(--outline) inset}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+th{font-weight:500;color:var(--muted);font-size:12px}
+th:first-child,td:first-child{text-align:left}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr.pick{cursor:pointer}
+tr.pick:hover td,tr.pick:focus td{background:var(--accent-soft)}
+.scroll{overflow-x:auto}
+.note{font-size:13px;color:var(--muted);border-left:2px solid var(--rule);padding-left:12px}
+.note b{color:var(--ink);font-weight:500}
+.compare{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:16px;background:var(--panel);border:1px solid var(--rule);padding:14px 16px}
+@media (max-width:860px){.compare{grid-template-columns:1fr}}
+.compare h3,.cmpres h3{font:700 16px/1.4 var(--serif);margin:0 0 8px}
+.compare input[type=search]{font:14px var(--sans);color:var(--ink);background:var(--ground);border:1px solid var(--rule);padding:7px 10px;width:100%}
+.plist{max-height:230px;overflow:auto;border:1px solid var(--rule);margin-top:8px}
+.plist label{display:flex;align-items:center;gap:8px;padding:4px 10px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--rule)}
+.plist label:last-child{border-bottom:0}
+.plist label:hover{background:var(--accent-soft)}
+.plist input{accent-color:var(--accent)}
+.plist .hand{font-size:12px;margin-left:auto;font-family:var(--mono);color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
+.chipx{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule);padding:4px 6px 4px 8px;font-size:13px;background:var(--ground)}
+.chipx.off{opacity:.55}
+.chipx i{width:11px;height:11px;border-radius:50%;display:inline-block}
+.chipx small{font-size:11px;color:var(--muted)}
+.chipx button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0 2px}
+.chipx button:hover{color:var(--accent)}
+.cmpbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;font-size:13px;color:var(--muted)}
+.cmpbar button{font:500 12px/1 var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--rule);padding:7px 10px;cursor:pointer}
+.cmpbar label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.cmpres{display:grid;gap:16px;background:var(--panel);border:1px solid var(--rule);padding:14px 16px}
+.sw2{width:11px;height:11px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:-1px}
+.cmpres td.hot{font-weight:500;color:var(--ink)}
+.cmpres td .sub{font-size:11px;color:var(--muted)}
+footer{font-size:12px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">pitch-vectors · 2026年 MLB</div>
+  <h1>持ち球の配分の地図</h1>
+  <p class="lede muted">フォーシーム以外の球を腕側とグラブ側に分け、<b>どちらの側をどれだけ投げるか</b>（球数の比）と、<b>各側の球が縦と横のどちらに動くか</b>（変化量の比）だけで投手を立体に置く（どれも対数比）。変化がどれだけ大きいかは、腕の強さと同じく意図的に外した。球速もラベルも使っていない。ドラッグで回転。</p>
+</header>
+
+<div class="axes">
+  <div><b>x　腕側 ÷ グラブ側</b><code>ln(腕側の球数 / グラブ側の球数) / √2</code>（フォーシームはどちらにも数えない）。＋は腕側、−はグラブ側の球が多い。0 は半々。</div>
+  <div><b>y　グラブ側：落とす ÷ 曲げる</b><code>ln(グラブ側の縦 / グラブ側の横) / √2</code>。＋はカーブのように落とす、−はスイーパーのように横へ曲げる。</div>
+  <div><b>z　腕側：落とす ÷ 流す</b><code>ln(腕側の縦 / 腕側の横) / √2</code>。＋はチェンジアップ・スプリットのように落とす、−はシンカーのように横へ流す。0 は半々。</div>
+</div>
+
+<div class="split" role="group" aria-label="条件">
+  <label>投手 <select id="phand"><option value="all">右投手と左投手</option><option value="R">右投手（RHP）</option><option value="L">左投手（LHP）</option></select></label>
+  <label>対戦打者 <select id="bhand"><option value="all">全打者</option><option value="R">対右打者（vs RHH）</option><option value="L">対左打者（vs LHH）</option></select></label>
+  <span class="count" id="poolnote"></span>
+</div>
+
+<div class="controls">
+  <input id="q" list="names" placeholder="投手名で検索" aria-label="投手を検索" autocomplete="off">
+  <datalist id="names"></datalist>
+  <button type="button" id="prev" aria-label="前の投手">← 前</button>
+  <button type="button" id="next" aria-label="次の投手">次 →</button>
+  <span class="count" id="count"></span>
+  <div class="seg" role="group" aria-label="視点">
+    <button type="button" data-view="free" aria-pressed="true">斜めから</button>
+    <button type="button" data-view="xy" aria-pressed="false">上から（x–y）</button>
+    <button type="button" data-view="xz" aria-pressed="false">正面（x–z）</button>
+    <button type="button" data-view="yz" aria-pressed="false">側面（y–z）</button>
+  </div>
+  <div class="seg" role="group" aria-label="縮尺">
+    <button type="button" data-aspect="data" aria-pressed="true">同じ尺度</button>
+    <button type="button" data-aspect="cube" aria-pressed="false">引き伸ばし</button>
+  </div>
+</div>
+
+<div class="compare">
+  <div>
+    <h3>比べる投手を選ぶ</h3>
+    <input type="search" id="filter" placeholder="名前で絞り込み" aria-label="投手を絞り込み" autocomplete="off">
+    <div class="plist" id="plist" role="group" aria-label="投手の一覧"></div>
+  </div>
+  <div>
+    <h3>選んだ投手 <span class="muted" style="font:400 13px var(--sans)">（最大8人、立体の上で色分け）</span></h3>
+    <div class="chips" id="chips"></div>
+    <div class="cmpbar">
+      <button type="button" id="clear">選択をすべて外す</button>
+      <label><input type="checkbox" id="shownn" checked> 注目する投手（赤）と近い投手（青）も表示</label>
+    </div>
+  </div>
+</div>
+
+<div class="plot" id="plot"></div>
+
+<div class="cmpres" id="cmpres">
+  <div>
+    <h3>選んだ投手の比較</h3>
+    <div class="scroll"><table id="ctbl"></table></div>
+  </div>
+  <div>
+    <h3>組ごとの隔たり</h3>
+    <div class="scroll"><table id="dtbl"></table></div>
+    <p class="note" style="margin-top:8px">上の数字は距離（対数比の単位）、下は<b>いま選んでいる条件の投手</b>の組のうち、その2人より近い組の割合。90%以上なら地図の上でかなり離れた2人、10%未満ならよく似た2人（太字）。</p>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="card">
+    <div><h2 id="pname"></h2><div class="meta" id="pmeta"></div></div>
+    <div class="coords" id="coords"></div>
+    <div class="mix" id="mix"></div>
+  </div>
+  <div class="card">
+    <div class="scroll"><table id="ntbl"></table></div>
+    <p class="note">近さは3つの軸のそのままの距離（組成データで標準の Aitchison 距離）。いま選んでいる条件の投手の中で探す。行をクリックするとその投手に移る。</p>
+  </div>
+</div>
+
+<p class="note"><b>条件の選び方</b>　「対右打者」「対左打者」は、その打者に投げた球だけで各投手の位置を計算し直したもの（フォーシームの基準は全体と同じ）。チェンジアップやスプリットは逆側の打者に多く投げるので、同じ投手でも位置が変わる。その条件での投球が <span id="minv"></span> 球未満の投手は載せていない。左投手は右投手の向きに鏡像化しているので、「対右打者」は右投手なら同じ側、左投手なら逆側の打者になる。<b>投げない側</b>　比はその側をほとんど投げないと不安定になるので、各部分に小さな擬似量（変化量の比は <span id="delta"></span> in／球、球数の比は割合 <span id="eps"></span>）を足してから比を取った。<b>地図に無いもの</b>　変化球全体をどれだけ投げるか。フォーシームの割合で補う。</p>
+
+<footer>Statcast 2026年レギュラーシーズン、400球以上。側の振り分けは、ラベルを使わずに検出した球のまとまり（ピーク）ごとに、その中心がフォーシームよりグラブ側へ2 in以上ならグラブ側、それ以外は腕側。縦は上下どちらへの動きも数える（アンダースローの浮き上がるスライダーも入る）。基準はフォーシーム、投げない投手はシンカーまたはカッターから換算。src/18_peak_table.py, src/fourparts.py, src/26_three_axes_data.py, src/28_logratio.py</footer>
+</div>
+
+<script>
+(function(){
+var DATA = window.THREE, P = DATA.pitchers;
+/* data: x = arm drop/run, y = glove drop/sweep, z = arm/glove. Shown: x = arm/glove, y = glove, z = arm. */
+P.forEach(function(p){ Object.keys(p.v).forEach(function(k){ var c = p.v[k], t = c.x; c.x = c.z; c.z = t; }); });
+var COL = {FF:"#D22D49",SI:"#FE9D00",FC:"#933F2C",FA:"#888888",SL:"#EEE716",ST:"#DDB33A",SV:"#93AFD4",
+           CU:"#00D1ED",KC:"#6236CD",CS:"#0068FF",CH:"#1DBE3A",FS:"#3BACAC",FO:"#55CCAB",KN:"#3C44CD",
+           EP:"#888888",SC:"#60DB33",PO:"#888888"};
+var PAL = ["#1f77b4","#ff7f0e","#2ca02c","#9467bd","#8c564b","#e377c2","#17becf","#bcbd22"], MAXC = 8;
+var BH = {all:"全打者", R:"対右打者", L:"対左打者"};
+function tok(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function store(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+function load(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+var byId = {}; P.forEach(function(p){ byId[p.id] = p; });
+document.getElementById("delta").textContent = DATA.delta;
+document.getElementById("eps").textContent = DATA.eps;
+document.getElementById("minv").textContent = DATA.minView;
+
+/* ---- state */
+var S = {ph:"all", bh:"all", cur:null, view:"free", aspect:"data", checked:[]};
+(function(){
+  var sk = P.find(function(p){ return p.name === "Skubal, Tarik"; });
+  S.cur = sk ? sk.id : P[0].id;
+  S.checked = ["Yamamoto, Yoshinobu","Misiorowski, Jacob","Sale, Chris","Sánchez, Cristopher"].map(function(n){
+    var p = P.find(function(q){ return q.name === n; }); return p ? p.id : null; }).filter(function(v){ return v != null; });
+  var c = +load("pv-three"); if(byId[c]) S.cur = c;
+  try{ var sc = JSON.parse(load("pv-three-cmp") || "null"); if(Array.isArray(sc)) S.checked = sc.filter(function(id){ return byId[id]; }).slice(0, MAXC); }catch(e){}
+  var ph = load("pv-three-ph"), bh = load("pv-three-bh");
+  if(ph === "all" || ph === "R" || ph === "L") S.ph = ph;
+  if(bh === "all" || bh === "R" || bh === "L") S.bh = bh;
+  document.getElementById("phand").value = S.ph; document.getElementById("bhand").value = S.bh;
+})();
+
+/* ---- the current pool: pitchers of the chosen hand placed in the chosen batter view */
+var POOL = [], IN = {}, ALLD = [];
+function v(p){ return p.v[S.bh]; }
+function rebuild(){
+  POOL = P.filter(function(p){ return (S.ph === "all" || p.hand === S.ph) && v(p); });
+  IN = {}; POOL.forEach(function(p){ IN[p.id] = true; });
+  var d = [];
+  for(var i=0;i<POOL.length;i++){ var a = v(POOL[i]);
+    for(var j=i+1;j<POOL.length;j++){ var b = v(POOL[j]); d.push(Math.hypot(a.x-b.x, a.y-b.y, a.z-b.z)); } }
+  ALLD = d.sort(function(a,b){ return a-b; });
+  if(!IN[S.cur] && POOL.length) S.cur = POOL[0].id;
+  document.getElementById("names").innerHTML = POOL.map(function(p){ return '<option value="'+p.name+'">'; }).join("");
+  var hl = {all:"右投手と左投手", R:"右投手", L:"左投手"}[S.ph];
+  document.getElementById("poolnote").textContent = hl+"・"+BH[S.bh]+"：" + POOL.length + " 人";
+}
+function closerShare(x){ var lo = 0, hi = ALLD.length; while(lo < hi){ var m = (lo+hi)>>1; if(ALLD[m] < x) lo = m+1; else hi = m; } return ALLD.length ? lo / ALLD.length : 0; }
+function dist(a, b){ var A = v(a), B = v(b); return Math.hypot(A.x-B.x, A.y-B.y, A.z-B.z); }
+function nearest(p, k){
+  return POOL.filter(function(q){ return q.id !== p.id; }).map(function(q){ return [q, dist(p, q)]; })
+    .sort(function(a, b){ return a[1] - b[1]; }).slice(0, k);
+}
+function colorOf(id){ var k = S.checked.indexOf(id); return k < 0 ? null : PAL[k % PAL.length]; }
+function ratio(x){ var r = Math.exp(Math.SQRT2 * x); return r >= 1 ? r.toFixed(1)+" : 1" : "1 : "+(1/r).toFixed(1); }
+function sgn(x){ return (x > 0 ? "+" : "") + x.toFixed(2); }
+
+/* ---- 3-D */
+var CAM = {
+  free:{eye:{x:1.55, y:-1.45, z:.9}, up:{x:0,y:0,z:1}},
+  xy:{eye:{x:0, y:0, z:2.4}, up:{x:0,y:1,z:0}},
+  xz:{eye:{x:0, y:-2.4, z:0}, up:{x:0,y:0,z:1}},
+  yz:{eye:{x:2.4, y:0, z:0}, up:{x:0,y:0,z:1}}
+};
+/* axis ranges from the data (every view, so switching views keeps one frame), padded and
+   rounded out to the grid: a fixed range once left pitchers outside the box, undrawn */
+var RANGE = (function(){
+  var r = {x:[0,0], y:[0,0], z:[0,0]};
+  P.forEach(function(p){ Object.keys(p.v).forEach(function(k){ var c = p.v[k];
+    ["x","y","z"].forEach(function(a){ r[a][0] = Math.min(r[a][0], c[a]); r[a][1] = Math.max(r[a][1], c[a]); }); }); });
+  ["x","y","z"].forEach(function(a){ r[a] = [Math.floor((r[a][0] - .1) * 2) / 2, Math.ceil((r[a][1] + .1) * 2) / 2]; });
+  return r;
+})();
+function axis(title, range){
+  return {title:{text:title, font:{size:12}}, range:range, dtick:.5, color:tok("--muted"), gridcolor:tok("--grid"),
+    zerolinecolor:tok("--rule"), showbackground:false, showspikes:false};
+}
+function pts(list){ return {x:list.map(function(p){ return v(p).x; }), y:list.map(function(p){ return v(p).y; }),
+  z:list.map(function(p){ return v(p).z; }), text:list.map(function(p){ return p.name; }), customdata:list.map(function(p){ return p.id; })}; }
+function draw(keepCam){
+  var el = document.getElementById("plot"), p = byId[S.cur], showNN = document.getElementById("shownn").checked;
+  var hov = "%{text}<br>x %{x:+.2f}　y %{y:+.2f}　z %{z:+.2f}<extra></extra>";
+  var nn = (p && IN[p.id]) ? nearest(p, 5).map(function(a){ return a[0]; }) : [];
+  var chk = S.checked.map(function(id){ return byId[id]; }).filter(function(q){ return IN[q.id]; });
+  var tr = [Object.assign({type:"scatter3d", mode:"markers", hovertemplate:hov, marker:{size:3.6, color:tok("--dot"), opacity:.75, line:{width:0}}}, pts(POOL))];
+  if(showNN && nn.length) tr.push(Object.assign({type:"scatter3d", mode:"markers", hovertemplate:hov, marker:{size:6, color:"rgba(0,0,0,0)", line:{color:tok("--nn"), width:2.5}}}, pts(nn)));
+  if(chk.length) tr.push(Object.assign({type:"scatter3d", mode:"markers", hovertemplate:hov,
+    marker:{size:9, color:chk.map(function(q){ return colorOf(q.id); }), line:{color:tok("--panel"), width:1.5}}}, pts(chk)));
+  if(showNN && p && IN[p.id]) tr.push(Object.assign({type:"scatter3d", mode:"markers", hovertemplate:hov,
+    marker:{size:8, color:tok("--accent"), line:{color:tok("--panel"), width:1}}}, pts([p])));
+  var ann = chk.map(function(q){ var c = v(q);
+    return {x:c.x, y:c.y, z:c.z, text:"<b>"+q.name.split(",")[0]+"</b>", showarrow:false, yshift:13,
+      font:{size:12, color:colorOf(q.id)}, bgcolor:"rgba(0,0,0,0)"}; });
+  if(showNN && p && IN[p.id]){
+    nn.filter(function(q){ return S.checked.indexOf(q.id) < 0; }).forEach(function(q){ var c = v(q);
+      ann.push({x:c.x, y:c.y, z:c.z, text:q.name.split(",")[0], showarrow:false, yshift:11, font:{size:11, color:tok("--nn")}, bgcolor:"rgba(0,0,0,0)"}); });
+    if(S.checked.indexOf(p.id) < 0){ var c = v(p);
+      ann.push({x:c.x, y:c.y, z:c.z, text:"<b>"+p.name.split(",")[0]+"</b>", showarrow:false, yshift:-14, font:{size:13, color:tok("--accent")}, bgcolor:"rgba(0,0,0,0)"}); }
+  }
+  var cam = (keepCam && el._fullLayout && el._fullLayout.scene) ? el._fullLayout.scene.camera : Object.assign({projection:{type:"orthographic"}}, CAM[S.view]);
+  Plotly.react(el, tr, {
+    paper_bgcolor:"rgba(0,0,0,0)", showlegend:false, margin:{l:0,r:0,t:0,b:0},
+    font:{family:tok("--sans"), color:tok("--ink"), size:12}, hoverlabel:{font:{family:tok("--mono")}},
+    scene:{dragmode:"turntable", aspectmode:S.aspect, camera:cam,
+      xaxis:axis("x グラブ側 ← → 腕側", RANGE.x),
+      yaxis:axis("y グラブ側：曲げる ← → 落とす", RANGE.y),
+      zaxis:axis("z 腕側：流す ← → 落とす", RANGE.z),
+      annotations:ann}
+  }, {displaylogo:false, responsive:true, modeBarButtonsToRemove:["toImage","resetCameraLastSave3d"]});
+  if(!el._bound){
+    el.on("plotly_click", function(ev){ var pt = ev.points && ev.points[0]; if(pt && byId[pt.customdata] && pt.customdata !== S.cur){ S.cur = pt.customdata; refresh(true); } });
+    el._bound = true;
+  }
+}
+
+/* ---- side panels */
+function info(){
+  var p = byId[S.cur];
+  var q = document.getElementById("q"); q.value = ""; q.placeholder = p ? p.name : "";
+  var k = POOL.findIndex(function(o){ return o.id === S.cur; });
+  document.getElementById("count").textContent = (k + 1) + " / " + POOL.length;
+  if(!p || !IN[p.id]) return;
+  store("pv-three", String(p.id));
+  var c = v(p);
+  document.getElementById("pname").textContent = p.name;
+  document.getElementById("pmeta").innerHTML = "<span>"+(p.hand === "L" ? "左投げ（鏡像）" : "右投げ")+"</span><span>"+BH[S.bh]+" "+c.n+"球</span><span>基準 "+p.ref+"</span>"+
+    "<span>フォーシーム "+Math.round(100*c.use[2])+"%</span><span>腕側 "+Math.round(100*c.use[0])+"%</span><span>グラブ側 "+Math.round(100*c.use[1])+"%</span>";
+  document.getElementById("coords").innerHTML =
+    "<div><span>x どちら側</span><b>"+sgn(c.x)+"</b><i>腕側 : グラブ側 ≈ "+ratio(c.x)+"</i></div>"+
+    "<div><span>y グラブ側</span><b>"+sgn(c.y)+"</b><i>落とす : 曲げる ≈ "+ratio(c.y)+"</i></div>"+
+    "<div><span>z 腕側</span><b>"+sgn(c.z)+"</b><i>落とす : 流す ≈ "+ratio(c.z)+"</i></div>";
+  document.getElementById("mix").innerHTML = "<span>参考：Statcast の球種構成（"+BH[S.bh]+"）</span>" + c.mix.map(function(m){
+    return "<span><span class='sw' style='background:"+(COL[m[0]]||"#888")+"'></span>"+m[0]+" "+Math.round(100*m[1])+"%</span>"; }).join("");
+  var nn = nearest(p, 8);
+  document.getElementById("ntbl").innerHTML = "<tr><th>近い投手</th><th>距離</th><th>x</th><th>y</th><th>z</th></tr>" +
+    nn.map(function(a){ var o = a[0], w = v(o);
+      return "<tr class='pick' tabindex='0' data-id='"+o.id+"'><td>"+o.name+"</td><td class='num'>"+a[1].toFixed(2)+"</td>"+
+        "<td class='num'>"+sgn(w.x)+"</td><td class='num'>"+sgn(w.y)+"</td><td class='num'>"+sgn(w.z)+"</td></tr>"; }).join("");
+  document.querySelectorAll("#ntbl tr.pick").forEach(function(r){
+    var f = function(){ S.cur = +r.dataset.id; refresh(true); };
+    r.addEventListener("click", f); r.addEventListener("keydown", function(e){ if(e.key === "Enter") f(); });
+  });
+}
+function listUI(){
+  var f = document.getElementById("filter").value.trim().toLowerCase(), full = S.checked.length >= MAXC;
+  var rows = POOL.filter(function(p){ return !f || p.name.toLowerCase().indexOf(f) >= 0; });
+  rows.sort(function(a, b){ var ca = S.checked.indexOf(a.id) >= 0, cb = S.checked.indexOf(b.id) >= 0;
+    return ca === cb ? a.name.localeCompare(b.name) : (ca ? -1 : 1); });
+  document.getElementById("plist").innerHTML = rows.map(function(q){ var on = S.checked.indexOf(q.id) >= 0;
+    return '<label><input type="checkbox" data-id="'+q.id+'"'+(on ? " checked" : (full ? " disabled" : ""))+'>'+q.name+
+      '<span class="hand">'+(q.hand === "L" ? "左" : "右")+'</span></label>'; }).join("") || '<label>該当なし</label>';
+  document.querySelectorAll("#plist input").forEach(function(b){ b.addEventListener("change", function(){ toggle(+b.dataset.id, b.checked); }); });
+}
+function toggle(id, on){
+  var k = S.checked.indexOf(id);
+  if(on && k < 0 && S.checked.length < MAXC) S.checked.push(id);
+  if(!on && k >= 0) S.checked.splice(k, 1);
+  store("pv-three-cmp", JSON.stringify(S.checked));
+  refresh(true);
+}
+function compareUI(){
+  document.getElementById("chips").innerHTML = S.checked.length ? S.checked.map(function(id){ var q = byId[id], vis = IN[id];
+    return '<span class="chipx'+(vis ? "" : " off")+'"><i style="background:'+colorOf(id)+'"></i>'+q.name+(vis ? "" : " <small>（この条件では表示なし）</small>")+
+      '<button type="button" aria-label="'+q.name+'を外す" data-id="'+id+'">×</button></span>'; }).join("")
+    : '<span class="muted" style="font-size:13px">左の一覧でチェックを入れると、ここに並ぶ。</span>';
+  document.querySelectorAll("#chips button").forEach(function(b){ b.addEventListener("click", function(){ toggle(+b.dataset.id, false); }); });
+  var qs = S.checked.map(function(id){ return byId[id]; }).filter(function(q){ return IN[q.id]; });
+  document.getElementById("cmpres").style.display = qs.length ? "grid" : "none";
+  if(!qs.length) return;
+  document.getElementById("ctbl").innerHTML = "<tr><th>投手（"+BH[S.bh]+"）</th><th>x 腕側:グラブ側</th><th>y グラブ側 落とす:曲げる</th><th>z 腕側 落とす:流す</th><th>FF</th><th>腕側</th><th>グラブ側</th><th>球数</th></tr>" +
+    qs.map(function(q){ var c = v(q); return '<tr><td><span class="sw2" style="background:'+colorOf(q.id)+'"></span>'+q.name+"</td>"+
+      '<td class="num">'+ratio(c.x)+'</td><td class="num">'+ratio(c.y)+'</td><td class="num">'+ratio(c.z)+"</td>"+
+      '<td class="num">'+Math.round(100*c.use[2])+'%</td><td class="num">'+Math.round(100*c.use[0])+'%</td><td class="num">'+Math.round(100*c.use[1])+'%</td><td class="num">'+c.n+"</td></tr>"; }).join("");
+  var head = "<tr><th></th>" + qs.map(function(q){ return '<th><span class="sw2" style="background:'+colorOf(q.id)+'"></span>'+q.name.split(",")[0]+"</th>"; }).join("") + "</tr>";
+  document.getElementById("dtbl").innerHTML = head + qs.map(function(a, i){
+    return '<tr><td><span class="sw2" style="background:'+colorOf(a.id)+'"></span>'+a.name.split(",")[0]+"</td>" + qs.map(function(b, j){
+      if(i === j) return '<td class="num">—</td>';
+      var d = dist(a, b), sh = closerShare(d);
+      return '<td class="num'+(sh >= .9 || sh < .1 ? " hot" : "")+'">'+d.toFixed(2)+'<br><span class="sub">'+Math.round(100*sh)+"%</span></td>";
+    }).join("") + "</tr>"; }).join("");
+}
+function refresh(keepCam){ draw(keepCam); info(); listUI(); compareUI(); }
+
+/* ---- controls */
+function setSplit(){
+  S.ph = document.getElementById("phand").value; S.bh = document.getElementById("bhand").value;
+  store("pv-three-ph", S.ph); store("pv-three-bh", S.bh);
+  rebuild(); refresh(true);
+}
+document.getElementById("phand").addEventListener("change", setSplit);
+document.getElementById("bhand").addEventListener("change", setSplit);
+function step(d){ var k = POOL.findIndex(function(o){ return o.id === S.cur; }); S.cur = POOL[(k + d + POOL.length) % POOL.length].id; refresh(true); }
+document.getElementById("prev").addEventListener("click", function(){ step(-1); });
+document.getElementById("next").addEventListener("click", function(){ step(1); });
+document.getElementById("q").addEventListener("change", function(e){
+  var t = e.target.value.trim().toLowerCase(); if(!t) return;
+  var p = POOL.find(function(o){ return o.name.toLowerCase() === t; }) || POOL.find(function(o){ return o.name.toLowerCase().indexOf(t) >= 0; });
+  if(p){ S.cur = p.id; refresh(true); }
+});
+document.querySelectorAll("[data-view]").forEach(function(b){
+  b.addEventListener("click", function(){
+    S.view = b.dataset.view;
+    document.querySelectorAll("[data-view]").forEach(function(o){ o.setAttribute("aria-pressed", o === b); });
+    Plotly.relayout("plot", {"scene.camera":Object.assign({projection:{type:"orthographic"}}, CAM[S.view])});
+  });
+});
+document.querySelectorAll("[data-aspect]").forEach(function(b){
+  b.addEventListener("click", function(){
+    S.aspect = b.dataset.aspect;
+    document.querySelectorAll("[data-aspect]").forEach(function(o){ o.setAttribute("aria-pressed", o === b); });
+    Plotly.relayout("plot", {"scene.aspectmode":S.aspect});
+  });
+});
+document.getElementById("filter").addEventListener("input", listUI);
+document.getElementById("clear").addEventListener("click", function(){ S.checked = []; store("pv-three-cmp", "[]"); refresh(true); });
+document.getElementById("shownn").addEventListener("change", function(){ draw(true); });
+
+rebuild(); refresh(false);
+var mq = window.matchMedia("(prefers-color-scheme: dark)");
+if(mq.addEventListener) mq.addEventListener("change", function(){ draw(true); });
+new MutationObserver(function(){ draw(true); }).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
+})();
+</script>
+</body>
+</html>

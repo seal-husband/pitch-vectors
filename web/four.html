@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>腕側とグラブ側の地図</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700&family=Noto+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.3/plotly.min.js"></script>
+<script src="four_data.js"></script>
+<style>
+:root{
+  --ground:#f2f4f6; --panel:#ffffff; --ink:#18202b; --muted:#5a6573; --rule:#d5dbe2; --grid:#e8ecf0;
+  --accent:#b8372b; --accent-soft:#f3dcd8; --dot:#8e99a6; --outline:#18202b; --nn:#3d6fa8;
+  --left:#6a4fb3; --right:#c9822b;
+  --serif:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --sans:"Noto Sans JP","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#11151b; --panel:#181d25; --ink:#e4e8ee; --muted:#96a0ad; --rule:#2c343f; --grid:#212831;
+    --accent:#ee7a6c; --accent-soft:#3a2220; --dot:#6b7683; --outline:#0b0e12; --nn:#7fa8dc;
+    --left:#a58cf0; --right:#e9a95a;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#11151b; --panel:#181d25; --ink:#e4e8ee; --muted:#96a0ad; --rule:#2c343f; --grid:#212831;
+  --accent:#ee7a6c; --accent-soft:#3a2220; --dot:#6b7683; --outline:#0b0e12; --nn:#7fa8dc;
+  --left:#a58cf0; --right:#e9a95a;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ground);color:var(--ink);font:15px/1.7 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:32px 16px 64px;display:grid;gap:22px}
+header{display:grid;gap:12px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+h1{font:700 clamp(26px,4vw,38px)/1.3 var(--serif);margin:0;text-wrap:balance}
+p{margin:0;max-width:74ch}
+.lede b{color:var(--ink);font-weight:500}
+.muted{color:var(--muted)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.controls input{font:15px var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--rule);padding:9px 12px;width:min(320px,100%)}
+.controls button{font:500 13px/1 var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--rule);padding:11px 14px;cursor:pointer}
+.controls button:hover{background:var(--accent-soft)}
+.controls .count{font-size:13px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--rule);background:var(--panel)}
+.seg button{border:0;padding:9px 12px;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{color:var(--ink);background:var(--accent-soft)}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.maps{display:flex;flex-wrap:nowrap;overflow:hidden;background:var(--panel);border:1px solid var(--rule)}
+.maps.stack{flex-wrap:wrap}
+.map{flex:none;min-width:0}
+.maps .map+.map{border-left:1px dashed var(--rule)}
+.maps.stack .map+.map{border-left:0;border-top:1px dashed var(--rule)}
+.cap{display:flex;font-size:13px;color:var(--muted)}
+.cap div{flex:none;padding:0 12px}
+.cap b{color:var(--ink);font-weight:500}
+.maps.stack + .capnote{display:block}
+.capnote{display:none;font-size:12px;color:var(--muted)}
+.panel{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.panel{grid-template-columns:1fr}}
+.who h2{font:700 26px/1.3 var(--serif);margin:0}
+.who .meta{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--rule);padding:14px 16px;display:grid;gap:12px}
+.four{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.four div{background:var(--panel);padding:10px 12px;display:grid;gap:2px}
+.four span{font-size:12px;color:var(--muted)}
+.four b{font:500 20px/1.2 var(--mono);font-variant-numeric:tabular-nums}
+.four i{font-style:normal;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.mix{display:flex;flex-wrap:wrap;gap:4px 12px;font:12px var(--mono);color:var(--muted)}
+.mix span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:10px;height:10px;border-radius:50%;display:inline-block;box-shadow:0 0 0 1px var(--outline) inset}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+th{font-weight:500;color:var(--muted);font-size:12px}
+th:first-child,td:first-child{text-align:left}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr.pick{cursor:pointer}
+tr.pick:hover td,tr.pick:focus td{background:var(--accent-soft)}
+.scroll{overflow-x:auto}
+.note{font-size:13px;color:var(--muted);border-left:2px solid var(--rule);padding-left:12px}
+.note b{color:var(--ink);font-weight:500}
+footer{font-size:12px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">pitch-vectors · 2026年 MLB · 477投手</div>
+  <h1>腕側とグラブ側の地図</h1>
+  <p class="lede muted">投手を4つの数で置いた。フォーシーム（投げない投手は換算）を原点に、フォーシーム以外の全投球を位置で<b>腕側</b>と<b>グラブ側</b>に分け、それぞれ<b>横へどれだけ</b>・<b>下へどれだけ</b>動かしているかを使用率ごと足し合わせる（インチ／1球）。球速もラベルも使っていない。</p>
+</header>
+
+<div class="controls">
+  <input id="q" list="names" placeholder="投手名で検索" aria-label="投手を検索" autocomplete="off">
+  <datalist id="names"></datalist>
+  <button type="button" id="prev" aria-label="前の投手">← 前</button>
+  <button type="button" id="next" aria-label="次の投手">次 →</button>
+  <span class="count" id="count"></span>
+  <div class="seg" role="group" aria-label="点の色">
+    <button type="button" data-color="none" aria-pressed="true">色なし</button>
+    <button type="button" data-color="hand" aria-pressed="false">左右</button>
+    <button type="button" data-color="ff" aria-pressed="false">フォーシームの割合</button>
+  </div>
+</div>
+
+<div>
+  <div class="cap" id="cap"><div><b>腕側</b>　← 腕側へ流す ／ ↓ 落とす</div><div><b>グラブ側</b>　グラブ側へ曲げる → ／ ↓ 落とす</div></div>
+  <div class="maps" id="maps">
+    <div class="map" id="arm"></div>
+    <div class="map" id="glove"></div>
+  </div>
+  <p class="capnote">画面が狭いので二つの図を縦に並べた。この表示では二つの図の尺度は揃っていない。</p>
+</div>
+
+<div class="panel">
+  <div class="card who">
+    <div>
+      <h2 id="pname"></h2>
+      <div class="meta" id="pmeta"></div>
+    </div>
+    <div class="four" id="four"></div>
+    <div class="mix" id="mix"></div>
+  </div>
+  <div class="card">
+    <div class="scroll"><table id="ntbl"></table></div>
+    <p class="note">近さ＝4つの数のユークリッド距離（インチ／1球）。行をクリックするとその投手に移る。地図上では白抜きの青で表示。</p>
+  </div>
+</div>
+
+<p class="note"><b>読み方</b>　4つの数はそれぞれ「その側の球の割合 × その側の平均位置」。点が右下（グラブ側の図）にある投手は、グラブ側へ大きく曲げて大きく落とす球を多く投げる。二つの図は縦軸（落とす量）の目盛りを共有し、横軸も同じ尺度なので、腕側よりグラブ側に多くを頼る投手が大半であることが幅の違いとして見える。</p>
+
+<footer>Statcast 2026年レギュラーシーズン、400球以上。側の振り分け：ラベルを使わずに検出した球のまとまり（ピーク）ごとに、その中心がフォーシームよりグラブ側へ2 in以上ならグラブ側、それ以外は腕側。縦は上下どちらへの動きも数える（アンダースローの浮き上がるスライダーも入る）。基準はフォーシーム（461人）、投げない投手はシンカーまたはカッターから換算（49人）。一球おきに分けた再現性は4つとも0.995以上。src/18_peak_table.py, src/fourparts.py, src/24_four_map_data.py</footer>
+</div>
+
+<script>
+(function(){
+var P = window.FOUR.pitchers;
+var COL = {FF:"#D22D49",SI:"#FE9D00",FC:"#933F2C",FA:"#888888",SL:"#EEE716",ST:"#DDB33A",SV:"#93AFD4",
+           CU:"#00D1ED",KC:"#6236CD",CS:"#0068FF",CH:"#1DBE3A",FS:"#3BACAC",FO:"#55CCAB",KN:"#3C44CD",
+           EP:"#888888",SC:"#60DB33",PO:"#888888"};
+function tok(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+var byId = {}; P.forEach(function(p, i){ byId[p.id] = i; });
+document.getElementById("names").innerHTML = P.map(function(p){ return '<option value="'+p.name+'">'; }).join("");
+var cur = Math.max(0, P.findIndex(function(p){ return p.name==="Skubal, Tarik"; })), colorMode = "none";
+try{ var sv = localStorage.getItem("pv-four"); if(sv && byId[sv] != null) cur = byId[sv]; }catch(e){}
+
+/* ranges from the data, so no pitcher falls outside a panel (v = [arm h, arm v, glove h, glove v]) */
+var MX = [0, 0, 0, 0];
+P.forEach(function(p){ p.v.forEach(function(x, i){ MX[i] = Math.max(MX[i], x); }); });
+var YMAX = Math.ceil(Math.max(MX[1], MX[3]) + .5), AX = [Math.ceil(MX[0] + .5), -0.3], GX = [-0.3, Math.ceil(MX[2] + .5)];
+var YS = YMAX + .3, XSA = AX[0] - AX[1], XSG = GX[1] - GX[0];
+var MA = {l:50, r:16, t:12, b:46}, MG = {l:16, r:16, t:12, b:46};
+var geo = {};
+/* one inch is the same number of pixels in both panels, so widths show the real difference */
+function layoutMaps(){
+  var box = document.getElementById("maps"), W = box.clientWidth, stack = W < 700;
+  box.classList.toggle("stack", stack);
+  if(!stack){
+    var H = Math.min(window.innerHeight * .72, 640) - MA.t - MA.b;
+    var k = Math.min(H / YS, (W - MA.l - MA.r - MG.l - MG.r - 16) / (XSA + XSG));
+    geo.arm = {w:Math.floor(k*XSA + MA.l + MA.r), h:Math.floor(k*YS + MA.t + MA.b)};
+    geo.glove = {w:Math.floor(k*XSG + MG.l + MG.r), h:geo.arm.h};
+  } else {
+    var ka = (W - MA.l - MA.r) / XSA, kg = (W - MA.l - MA.r) / XSG;
+    ka = Math.min(ka, 30);
+    geo.arm = {w:W, h:Math.floor(ka*YS + MA.t + MA.b)};
+    geo.glove = {w:W, h:Math.floor(kg*YS + MA.t + MA.b)};
+  }
+  var cells = document.querySelectorAll("#cap div");
+  cells[0].style.width = geo.arm.w + "px"; cells[1].style.width = geo.glove.w + "px";
+  document.getElementById("cap").style.display = stack ? "none" : "flex";
+  ["arm", "glove"].forEach(function(id){ var el = document.getElementById(id); el.style.width = geo[id].w+"px"; el.style.height = geo[id].h+"px"; });
+  geo.stack = stack;
+}
+function dotColors(){
+  if(colorMode === "hand") return P.map(function(p){ return p.hand === "L" ? tok("--left") : tok("--right"); });
+  if(colorMode === "ff") return P.map(function(p){ return p.use[3]; });
+  return tok("--dot");
+}
+function panel(el, ix, iy, xr, title, p){
+  var nb = p.nn.slice(0, 5).map(function(n){ return n[0]; });
+  var cols = dotColors();
+  var marker = {size:7, opacity:.7, line:{width:0}, color:cols};
+  if(colorMode === "ff"){ marker.colorscale = [[0,"#f1d9d4"],[1,"#b8243a"]]; marker.cmin = 0; marker.cmax = .6;
+    marker.showscale = (ix === 2); marker.colorbar = {title:{text:"FF割合", font:{size:11}}, thickness:10, len:.5, tickformat:".0%"}; }
+  var tr = [{type:"scattergl", mode:"markers", x:P.map(function(q){ return q.v[ix]; }), y:P.map(function(q){ return q.v[iy]; }),
+    text:P.map(function(q){ return q.name; }), customdata:P.map(function(q, i){ return i; }), marker:marker,
+    hovertemplate:"%{text}<br>横 %{x:.2f}　縦 %{y:.2f}<extra></extra>"}];
+  tr.push({type:"scatter", mode:"markers+text", x:nb.map(function(i){ return P[i].v[ix]; }), y:nb.map(function(i){ return P[i].v[iy]; }),
+    text:nb.map(function(i){ return P[i].name.split(",")[0]; }), textposition:"top center", customdata:nb,
+    textfont:{size:11, color:tok("--nn")}, marker:{size:11, color:"rgba(0,0,0,0)", line:{color:tok("--nn"), width:2}},
+    hovertemplate:"%{text}<extra></extra>"});
+  tr.push({type:"scatter", mode:"markers+text", x:[p.v[ix]], y:[p.v[iy]], text:["<b>"+p.name.split(",")[0]+"</b>"], customdata:[cur],
+    textposition:"bottom center", textfont:{size:12, color:tok("--accent")},
+    marker:{size:15, color:tok("--accent"), line:{color:tok("--panel"), width:1.5}}, hoverinfo:"skip"});
+  var L = {paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)", showlegend:false, hovermode:"closest",
+    font:{family:tok("--sans"), color:tok("--ink"), size:12}, margin:(ix === 0 || geo.stack) ? MA : MG,
+    width:geo[ix === 0 ? "arm" : "glove"].w, height:geo[ix === 0 ? "arm" : "glove"].h,
+    hoverlabel:{font:{family:tok("--mono")}},
+    xaxis:{title:{text:title, font:{size:12}}, range:xr, dtick:2, gridcolor:tok("--grid"), zeroline:true, zerolinecolor:tok("--rule"),
+      color:tok("--muted"), fixedrange:true},
+    yaxis:{title:{text:(ix === 0 || geo.stack) ? "落とす量（インチ／1球）" : "", font:{size:12}}, range:[YMAX, -0.3], dtick:2,
+      gridcolor:tok("--grid"), zeroline:true, zerolinecolor:tok("--rule"), color:tok("--muted"), fixedrange:true,
+      showticklabels:ix === 0 || geo.stack}};
+  Plotly.react(el, tr, L, {displaylogo:false, displayModeBar:false});
+  if(!el._bound){
+    el.on("plotly_click", function(ev){ var pt = ev.points && ev.points[0]; if(pt && typeof pt.customdata === "number" && pt.customdata !== cur) go(pt.customdata); });
+    el._bound = true;
+  }
+}
+function cell(label, v, use, mx, mz, unit){
+  return "<div><span>"+label+"</span><b>"+v.toFixed(2)+"</b><i>"+Math.round(100*use)+"% × "+(mx == null ? "—" : mx.toFixed(1)+" in")+"</i></div>";
+}
+function info(p){
+  document.getElementById("pname").textContent = p.name;
+  document.getElementById("pmeta").innerHTML =
+    "<span>"+(p.hand === "L" ? "左投げ（鏡像）" : "右投げ")+"</span><span>基準 "+p.ref+"</span>"+
+    "<span>フォーシーム "+Math.round(100*p.use[3])+"%</span><span>腕側 "+Math.round(100*p.use[0])+"%</span>"+
+    "<span>グラブ側 "+Math.round(100*p.use[1])+"%</span>"+(p.use[2] > .01 ? "<span>その他（上側）"+Math.round(100*p.use[2])+"%</span>" : "");
+  document.getElementById("four").innerHTML =
+    cell("腕側の横", p.v[0], p.use[0], p.mean[0]) + cell("腕側の縦", p.v[1], p.use[0], p.mean[1]) +
+    cell("グラブ側の横", p.v[2], p.use[1], p.mean[2]) + cell("グラブ側の縦", p.v[3], p.use[1], p.mean[3]);
+  document.getElementById("mix").innerHTML = "<span>参考：Statcast の球種構成</span>" + p.mix.map(function(m){
+    return "<span><span class='sw' style='background:"+(COL[m[0]]||"#888")+"'></span>"+m[0]+" "+Math.round(100*m[1])+"%</span>";
+  }).join("");
+  document.getElementById("ntbl").innerHTML = "<tr><th>近い投手</th><th>距離</th><th>腕側 横・縦</th><th>グラブ側 横・縦</th></tr>" +
+    p.nn.map(function(n){
+      var q = P[n[0]];
+      return "<tr class='pick' tabindex='0' data-i='"+n[0]+"'><td>"+q.name+"</td><td class='num'>"+n[1].toFixed(2)+"</td>"+
+        "<td class='num'>"+q.v[0].toFixed(1)+" · "+q.v[1].toFixed(1)+"</td><td class='num'>"+q.v[2].toFixed(1)+" · "+q.v[3].toFixed(1)+"</td></tr>";
+    }).join("");
+  document.querySelectorAll("#ntbl tr.pick").forEach(function(r){
+    var f = function(){ go(+r.dataset.i); };
+    r.addEventListener("click", f); r.addEventListener("keydown", function(e){ if(e.key === "Enter") f(); });
+  });
+}
+function draw(){
+  var p = P[cur];
+  try{ localStorage.setItem("pv-four", String(p.id)); }catch(e){}
+  var q = document.getElementById("q"); q.value = ""; q.placeholder = p.name;
+  document.getElementById("count").textContent = (cur+1)+" / "+P.length;
+  layoutMaps();
+  panel(document.getElementById("arm"), 0, 1, AX, "腕側へ流す量", p);
+  panel(document.getElementById("glove"), 2, 3, GX, "グラブ側へ曲げる量", p);
+  info(p);
+}
+function go(k){ cur = (k + P.length) % P.length; draw(); }
+document.getElementById("prev").addEventListener("click", function(){ go(cur-1); });
+document.getElementById("next").addEventListener("click", function(){ go(cur+1); });
+document.getElementById("q").addEventListener("change", function(e){
+  var v = e.target.value.trim().toLowerCase(); if(!v) return;
+  var k = P.findIndex(function(p){ return p.name.toLowerCase() === v; });
+  if(k < 0) k = P.findIndex(function(p){ return p.name.toLowerCase().indexOf(v) >= 0; });
+  if(k >= 0) go(k);
+});
+document.querySelectorAll("[data-color]").forEach(function(b){
+  b.addEventListener("click", function(){
+    colorMode = b.dataset.color;
+    document.querySelectorAll("[data-color]").forEach(function(o){ o.setAttribute("aria-pressed", o === b); });
+    draw();
+  });
+});
+draw();
+var rt, lastW = 0;
+function redraw(){ var w = document.getElementById("maps").clientWidth; if(Math.abs(w - lastW) > 4){ lastW = w; draw(); } }
+window.addEventListener("resize", function(){ clearTimeout(rt); rt = setTimeout(redraw, 150); });
+if(window.ResizeObserver) new ResizeObserver(function(){ clearTimeout(rt); rt = setTimeout(redraw, 150); }).observe(document.getElementById("maps"));
+var mq = window.matchMedia("(prefers-color-scheme: dark)");
+if(mq.addEventListener) mq.addEventListener("change", draw);
+new MutationObserver(draw).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
+})();
+</script>
+</body>
+</html>

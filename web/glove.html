@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>持ち球の二つの扇</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700&family=Noto+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.35.3/plotly.min.js"></script>
+<script src="fans_data.js"></script>
+<style>
+:root{
+  --ground:#f2f4f6; --panel:#ffffff; --ink:#18202b; --muted:#5a6573; --rule:#d5dbe2; --grid:#e8ecf0;
+  --accent:#b8372b; --accent-soft:#f3dcd8; --iso:#a3adb8; --outline:#18202b; --nn:#3d6fa8;
+  --serif:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --sans:"Noto Sans JP","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#11151b; --panel:#181d25; --ink:#e4e8ee; --muted:#96a0ad; --rule:#2c343f; --grid:#212831;
+    --accent:#ee7a6c; --accent-soft:#3a2220; --iso:#5f6b78; --outline:#0b0e12; --nn:#7fa8dc;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#11151b; --panel:#181d25; --ink:#e4e8ee; --muted:#96a0ad; --rule:#2c343f; --grid:#212831;
+  --accent:#ee7a6c; --accent-soft:#3a2220; --iso:#5f6b78; --outline:#0b0e12; --nn:#7fa8dc;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ground);color:var(--ink);font:15px/1.7 var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 16px 64px;display:grid;gap:24px}
+header{display:grid;gap:12px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+h1{font:700 clamp(26px,4vw,38px)/1.3 var(--serif);margin:0;text-wrap:balance}
+p{margin:0;max-width:72ch}
+.lede b{color:var(--ink);font-weight:500}
+.muted{color:var(--muted)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.controls input{font:15px var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--rule);padding:9px 12px;width:min(340px,100%)}
+.controls button{font:500 13px/1 var(--sans);color:var(--ink);background:var(--panel);border:1px solid var(--rule);padding:11px 14px;cursor:pointer}
+.controls button:hover{background:var(--accent-soft)}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.controls .count{font-size:13px;color:var(--muted)}
+.who{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 20px}
+.who h2{font:700 26px/1.3 var(--serif);margin:0}
+.who .meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
+.who .meta b{color:var(--ink);font:500 15px var(--mono)}
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:860px){.charts{grid-template-columns:1fr}}
+.fig{display:grid;gap:6px;min-width:0;align-content:start}
+.fig h3{font:700 17px/1.4 var(--serif);margin:0}
+.fig p{font-size:13px;color:var(--muted)}
+.plot{background:var(--panel);border:1px solid var(--rule);min-width:0;aspect-ratio:1/1;min-height:320px}
+.plot.wide{aspect-ratio:16/9}
+.tables{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.tables{grid-template-columns:1fr}}
+.tables h3{font:700 16px/1.4 var(--serif);margin:0 0 6px}
+.tables .foot{font-size:13px;color:var(--muted);margin-top:8px}
+.scroll{overflow-x:auto;background:var(--panel);border:1px solid var(--rule)}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:420px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+th{font-weight:500;color:var(--muted);font-size:12px}
+th:first-child,td:first-child{text-align:left}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr.pick{cursor:pointer}
+tr.pick:hover td,tr.pick:focus td{background:var(--accent-soft)}
+.chip{display:inline-flex;align-items:center;gap:4px;margin-right:8px;font:12px var(--mono)}
+.sw{width:10px;height:10px;border-radius:50%;display:inline-block;box-shadow:0 0 0 1px var(--outline) inset}
+.seg{display:inline-flex;border:1px solid var(--rule);background:var(--panel);margin-bottom:8px}
+.seg button{font:500 13px/1 var(--sans);color:var(--muted);background:none;border:0;padding:9px 13px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{color:var(--ink);background:var(--accent-soft)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.guide div{background:var(--panel);padding:14px 16px;font-size:13px;color:var(--muted);line-height:1.65}
+.guide b{display:block;color:var(--ink);font-weight:500;font-size:14px;margin-bottom:2px}
+footer{font-size:12px;color:var(--muted);border-top:1px solid var(--rule);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">pitch-vectors · ピークテーブル · 2026年 MLB</div>
+  <h1>持ち球の二つの扇</h1>
+  <p class="lede muted">ラベルを使わずに検出した投手ごとのピークを、全員フォーシーム基準で並べた（フォーシームを投げない投手は換算した仮想のフォーシームが基準）。変化球は二つの大陸に分かれ、それぞれ二つの数で位置が決まる。<b>グラブ側</b>は向き θ と距離 ρ、<b>腕側</b>は向き θ と球速差 Δv。腕側ではシンカーとチェンジアップを分けるのが球速だからだ。</p>
+</header>
+
+<div class="controls">
+  <input id="q" list="names" placeholder="投手名で検索" aria-label="投手を検索" autocomplete="off">
+  <datalist id="names"></datalist>
+  <button type="button" id="prev" aria-label="前の投手">← 前</button>
+  <button type="button" id="next" aria-label="次の投手">次 →</button>
+  <span class="count" id="count"></span>
+</div>
+
+<div class="who">
+  <h2 id="pname"></h2>
+  <div class="meta" id="pmeta"></div>
+</div>
+
+<div class="charts">
+  <div class="fig">
+    <h3>グラブ側の扇：向き θ × 距離 ρ</h3>
+    <div class="plot" id="fan"></div>
+    <p>原点＝フォーシーム。放射線が向き（0°＝真横、90°＝真下）、同心円が距離。灰色はリーグ全投手のピーク、白抜きの青は近い投手3人。</p>
+  </div>
+  <div class="fig">
+    <h3>腕側の扇：向き θ × 球速差 Δv</h3>
+    <div class="plot" id="arm"></div>
+    <p>横＝向き（0°＝真横に腕側へ、90°＝真下）、縦＝フォーシームとの球速差。シンカーは上、チェンジアップとスプリットは下に並ぶ。</p>
+  </div>
+</div>
+
+<div class="tables">
+  <div>
+    <h3>この投手のピーク</h3>
+    <div class="scroll"><table id="ptbl"></table></div>
+    <p class="foot">割合は全投球に占める割合。色は参考の Savant ラベル（ピーク内で最多のもの）。</p>
+  </div>
+  <div>
+    <h3>近い投手</h3>
+    <div class="seg" role="group" aria-label="比べる範囲">
+      <button type="button" data-mode="whole" aria-pressed="true">持ち球全体</button>
+      <button type="button" data-mode="glove" aria-pressed="false">グラブ側だけ</button>
+      <button type="button" data-mode="arm" aria-pressed="false">腕側だけ</button>
+    </div>
+    <div class="scroll"><table id="ntbl"></table></div>
+    <p class="foot">近さ＝ピークの重さを運んで重ねる平均の移動距離（EMD、in）。行をクリックするとその投手に移る。</p>
+  </div>
+</div>
+
+<div class="fig">
+  <h3>投手の地図：持ち球全体の近さ</h3>
+  <div class="plot wide" id="map"></div>
+  <p>フォーシームを原点のピークとして含めた持ち球全体の EMD を2次元に落とした図（地図上の距離と EMD の相関 0.86）。横はおおむねグラブ側の球の多さ、縦は腕側の球の多さ。点をクリックするとその投手に移る。</p>
+</div>
+
+<div class="guide">
+  <div><b>グラブ側：θ と ρ</b>スイーパー約33°・27 in、カッター37°・13 in、スライダー51°・19 in、スラーブ47°・29 in、カーブ58°・31 in。球速は θ と ρ にほぼ従う（Pitch Plane）。</div>
+  <div><b>腕側：θ と Δv</b>シンカー41°・−0.9 mph、チェンジアップ62°・−7.9 mph、スプリット76°・−9.0 mph。チェンジアップは流れながら落ち、スプリットは真下に落ちる。</div>
+  <div><b>基準</b>フォーシームを投げる投手（461人）は自分のフォーシーム。投げない投手はシンカー（+7.3, +5.9 in, +0.4 mph）またはカッター（−9.7, +7.3 in, +4.3 mph）から換算。</div>
+  <div><b>ピーク</b>速球との（横・縦・球速×0.63）の差の3次元で検出し、谷の基準（鞍点が低い方の頂上の70%以下）を満たすものだけを別の球と数えた。</div>
+</div>
+
+<footer>Statcast 2026年レギュラーシーズン、400球以上の投手。src/18_peak_table.py, src/21_ff_reference.py, src/22_two_fans.py</footer>
+</div>
+
+<script>
+(function(){
+var D = window.FANS, P = D.pitchers;
+var COL = {FF:"#D22D49",SI:"#FE9D00",FC:"#933F2C",FA:"#888888",SL:"#EEE716",ST:"#DDB33A",SV:"#93AFD4",
+           CU:"#00D1ED",KC:"#6236CD",CS:"#0068FF",CH:"#1DBE3A",FS:"#3BACAC",FO:"#55CCAB",KN:"#3C44CD"};
+function tok(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function col(t){ return COL[t] || "#888888"; }
+var CFG = {displaylogo:false, responsive:true, displayModeBar:false};
+var byId = {}; P.forEach(function(p, i){ byId[p.id] = i; });
+document.getElementById("names").innerHTML = P.map(function(p){ return '<option value="'+p.name+'">'; }).join("");
+var cur = Math.max(0, P.findIndex(function(p){ return p.name==="Skubal, Tarik"; })), mode = "whole";
+try{ var sv = localStorage.getItem("pv-fans"); if(sv && byId[sv] != null) cur = byId[sv]; }catch(e){}
+
+function base(){
+  return {paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)", showlegend:false,
+    font:{family:tok("--sans"), color:tok("--ink"), size:12}, margin:{l:52,r:14,t:14,b:44},
+    hoverlabel:{font:{family:tok("--mono")}}, hovermode:"closest"};
+}
+function side(p, s){ return p.peaks.filter(function(k){ return k.side === s; }); }
+function nbrs(p){ return (p.nn[mode] || []).slice(0, 3).map(function(n){ return P[byId[n[0]]]; }).filter(Boolean); }
+function size(w){ return 10 + 60*w; }
+function sw(t){ return "<span class='sw' style='background:"+col(t)+"'></span>"; }
+
+function drawFan(p){
+  var tr = [], ann = [], XR = [-3, 42], YR = [-42, 3];
+  [0,15,30,45,60,75,90].forEach(function(a){
+    var r = a*Math.PI/180;
+    tr.push({type:"scatter", mode:"lines", x:[0, 44*Math.cos(r)], y:[0, -44*Math.sin(r)], hoverinfo:"skip",
+      line:{color:tok("--grid"), width:a%30===0?1.2:.6}});
+    var lx = 40.5*Math.cos(r), ly = -40.5*Math.sin(r);
+    if(lx <= XR[1] && ly >= YR[0]) ann.push({x:lx, y:ly, text:a+"°", showarrow:false, font:{family:tok("--mono"), size:10, color:tok("--muted")}});
+  });
+  [10,20,30,40].forEach(function(R){
+    var x=[], y=[]; for(var i=0;i<=45;i++){ var a=i*2*Math.PI/180; x.push(R*Math.cos(a)); y.push(-R*Math.sin(a)); }
+    tr.push({type:"scatter", mode:"lines", x:x, y:y, hoverinfo:"skip", line:{color:tok("--grid"), width:1}});
+    ann.push({x:R, y:0, yshift:9, text:R+" in", showarrow:false, font:{family:tok("--mono"), size:10, color:tok("--muted")}});
+  });
+  var L0 = D.league.glove;
+  tr.push({type:"scatter", mode:"markers", x:L0.fx, y:L0.fz, hoverinfo:"skip",
+    marker:{size:L0.share.map(function(w){ return 3 + 16*w; }), color:tok("--iso"), opacity:.35, line:{width:0}}});
+  nbrs(p).forEach(function(q){
+    var g = side(q, "glove");
+    tr.push({type:"scatter", mode:"markers", x:g.map(function(k){ return k.fx; }), y:g.map(function(k){ return k.fz; }),
+      marker:{size:g.map(function(k){ return size(k.share); }), color:"rgba(0,0,0,0)", line:{color:tok("--nn"), width:1.6}},
+      hovertemplate:q.name+"<extra></extra>"});
+  });
+  var g = side(p, "glove");
+  tr.push({type:"scatter", mode:"markers+text", x:g.map(function(k){ return k.fx; }), y:g.map(function(k){ return k.fz; }),
+    text:g.map(function(k){ return "<b>"+k.t+"</b> "+Math.round(k.th)+"°·"+Math.round(k.rho)+"in"; }),
+    textposition:g.map(function(k){ return k.fx > 28 ? "middle left" : "middle right"; }),
+    textfont:{family:tok("--mono"), size:12, color:tok("--ink")},
+    marker:{size:g.map(function(k){ return size(k.share); }), color:g.map(function(k){ return col(k.t); }), line:{color:tok("--outline"), width:1.5}},
+    customdata:g.map(function(k){ return [k.labels, k.mph, Math.round(100*k.share)]; }),
+    hovertemplate:"%{customdata[0]}<br>%{text}<br>球速差 %{customdata[1]} mph<br>全投球の %{customdata[2]}%<extra></extra>"});
+  tr.push({type:"scatter", mode:"markers", x:[0], y:[0], hovertemplate:"フォーシーム<extra></extra>",
+    marker:{size:10, symbol:"diamond", color:tok("--accent")}});
+  if(!g.length) ann.push({xref:"paper", yref:"paper", x:.5, y:.5, showarrow:false, text:"グラブ側の球を投げていない", font:{size:14, color:tok("--muted")}});
+  var L = base();
+  L.xaxis = {title:{text:"フォーシームとの横変化の差 in（グラブ側 →）", font:{size:12}}, range:XR, zeroline:false, showgrid:false, color:tok("--muted"), fixedrange:true};
+  L.yaxis = {title:{text:"縦変化の差 in（↓ 下へ）", font:{size:12}}, range:YR, zeroline:false, showgrid:false, color:tok("--muted"), scaleanchor:"x", fixedrange:true};
+  L.annotations = ann;
+  Plotly.react("fan", tr, L, CFG);
+}
+
+function drawArm(p){
+  var tr = [], ann = [], L0 = D.league.arm;
+  tr.push({type:"scatter", mode:"markers", x:L0.theta, y:L0.fmph, hoverinfo:"skip",
+    marker:{size:L0.share.map(function(w){ return 3 + 16*w; }), color:tok("--iso"), opacity:.35, line:{width:0}}});
+  nbrs(p).forEach(function(q){
+    var g = side(q, "arm");
+    tr.push({type:"scatter", mode:"markers", x:g.map(function(k){ return k.th; }), y:g.map(function(k){ return k.mph; }),
+      marker:{size:g.map(function(k){ return size(k.share); }), color:"rgba(0,0,0,0)", line:{color:tok("--nn"), width:1.6}},
+      hovertemplate:q.name+"<extra></extra>"});
+  });
+  var g = side(p, "arm");
+  tr.push({type:"scatter", mode:"markers+text", x:g.map(function(k){ return k.th; }), y:g.map(function(k){ return k.mph; }),
+    text:g.map(function(k){ return "<b>"+k.t+"</b> "+Math.round(k.th)+"°·"+k.mph.toFixed(1); }),
+    textposition:g.map(function(k){ return k.th > 70 ? "middle left" : "middle right"; }),
+    textfont:{family:tok("--mono"), size:12, color:tok("--ink")},
+    marker:{size:g.map(function(k){ return size(k.share); }), color:g.map(function(k){ return col(k.t); }), line:{color:tok("--outline"), width:1.5}},
+    customdata:g.map(function(k){ return [k.labels, k.rho, Math.round(100*k.share)]; }),
+    hovertemplate:"%{customdata[0]}<br>%{text} mph<br>距離 %{customdata[1]} in<br>全投球の %{customdata[2]}%<extra></extra>"});
+  if(!g.length) ann.push({xref:"paper", yref:"paper", x:.5, y:.5, showarrow:false, text:"腕側の球を投げていない", font:{size:14, color:tok("--muted")}});
+  var L = base();
+  L.xaxis = {title:{text:"向き θ（0° 真横に腕側 → 90° 真下）", font:{size:12}}, range:[-5, 100], dtick:15, gridcolor:tok("--grid"), zeroline:false, color:tok("--muted"), fixedrange:true};
+  L.yaxis = {title:{text:"フォーシームとの球速差 mph", font:{size:12}}, range:[-17, 4], dtick:2, gridcolor:tok("--grid"), zeroline:true, zerolinecolor:tok("--rule"), color:tok("--muted"), fixedrange:true};
+  L.annotations = ann;
+  Plotly.react("arm", tr, L, CFG);
+}
+
+function drawMap(p){
+  var nb = (p.nn[mode] || []).slice(0,5).map(function(n){ return byId[n[0]]; }).filter(function(i){ return i != null; });
+  var tr = [{type:"scattergl", mode:"markers", x:P.map(function(q){ return q.mx; }), y:P.map(function(q){ return q.my; }),
+    text:P.map(function(q){ return q.name; }), customdata:P.map(function(q, i){ return i; }),
+    marker:{size:7, color:tok("--iso"), opacity:.6}, hovertemplate:"%{text}<extra></extra>"}];
+  tr.push({type:"scatter", mode:"markers+text", x:nb.map(function(i){ return P[i].mx; }), y:nb.map(function(i){ return P[i].my; }),
+    text:nb.map(function(i){ return P[i].name.split(",")[0]; }), textposition:"top center", customdata:nb,
+    textfont:{size:11, color:tok("--nn")}, marker:{size:10, color:"rgba(0,0,0,0)", line:{color:tok("--nn"), width:2}},
+    hovertemplate:"%{text}<extra></extra>"});
+  tr.push({type:"scatter", mode:"markers+text", x:[p.mx], y:[p.my], text:["<b>"+p.name.split(",")[0]+"</b>"], customdata:[cur],
+    textposition:"bottom center", textfont:{size:12, color:tok("--accent")},
+    marker:{size:14, color:tok("--accent"), line:{color:tok("--panel"), width:1.5}}, hoverinfo:"skip"});
+  var L = base();
+  L.xaxis = {title:{text:"← グラブ側の球が少ない　　　グラブ側の球が多い →", font:{size:12}}, showticklabels:false, zeroline:false, gridcolor:tok("--grid"), color:tok("--muted"), fixedrange:true};
+  L.yaxis = {title:{text:"腕側の球が多い ↑", font:{size:12}}, showticklabels:false, zeroline:false, gridcolor:tok("--grid"), color:tok("--muted"), fixedrange:true};
+  var el = document.getElementById("map");
+  Plotly.react(el, tr, L, CFG);
+  if(!el._bound){
+    el.on("plotly_click", function(ev){ var pt = ev.points && ev.points[0]; if(pt && typeof pt.customdata === "number" && pt.customdata !== cur) go(pt.customdata); });
+    el._bound = true;
+  }
+}
+
+function pos(k){
+  if(k.side === "glove") return Math.round(k.th)+"°·"+Math.round(k.rho)+"in";
+  if(k.side === "arm") return Math.round(k.th)+"°·"+k.mph.toFixed(1)+"mph";
+  return "—";
+}
+function drawTables(p){
+  var nameSide = {glove:"グラブ側", arm:"腕側", other:"その他"};
+  var rows = [];
+  if(p.ff != null) rows.push("<tr><td><span class='chip'>"+sw("FF")+"FF</span></td><td>基準</td><td class='num'>—</td><td class='num'>—</td><td class='num'>"+Math.round(100*p.ff)+"%</td></tr>");
+  p.peaks.forEach(function(k){
+    var a = k.side === "other" ? "—" : Math.round(k.th)+"°";
+    var b = k.side === "glove" ? k.rho.toFixed(1)+" in" : k.side === "arm" ? k.mph.toFixed(1)+" mph" : "—";
+    rows.push("<tr><td><span class='chip'>"+sw(k.t)+k.t+"</span><span class='muted' style='font-size:12px'>"+k.labels+"</span></td><td>"+nameSide[k.side]+"</td>"+
+      "<td class='num'>"+a+"</td><td class='num'>"+b+"</td><td class='num'>"+Math.round(100*k.share)+"%</td></tr>");
+  });
+  document.getElementById("ptbl").innerHTML = "<tr><th>ピーク</th><th>大陸</th><th>向き θ</th><th>ρ ／ Δv</th><th>割合</th></tr>" + rows.join("");
+  var nn = p.nn[mode] || [];
+  document.getElementById("ntbl").innerHTML = nn.length ? "<tr><th>投手</th><th>近さ</th><th>変化球のピーク</th></tr>" +
+    nn.map(function(n){
+      var i = byId[n[0]], q = P[i]; if(!q) return "";
+      var ks = q.peaks.filter(function(k){ return mode === "whole" ? k.side !== "other" : k.side === mode; });
+      return "<tr class='pick' data-i='"+i+"' tabindex='0'><td>"+q.name+"</td><td class='num'>"+n[1].toFixed(1)+" in</td><td>"+
+        ks.map(function(k){ return "<span class='chip'>"+sw(k.t)+k.t+" "+pos(k)+"</span>"; }).join("")+"</td></tr>";
+    }).join("") : "<tr><td class='muted'>この側の球を投げていないため比較できない</td></tr>";
+  document.querySelectorAll("#ntbl tr.pick").forEach(function(r){
+    var f = function(){ go(+r.dataset.i); };
+    r.addEventListener("click", f); r.addEventListener("keydown", function(e){ if(e.key==="Enter") f(); });
+  });
+}
+
+function draw(){
+  var p = P[cur];
+  try{ localStorage.setItem("pv-fans", String(p.id)); }catch(e){}
+  var q = document.getElementById("q"); q.value = ""; q.placeholder = p.name;
+  document.getElementById("count").textContent = (cur+1)+" / "+P.length;
+  document.getElementById("pname").textContent = p.name;
+  var sum = function(s){ return side(p, s).reduce(function(a,k){ return a+k.share; }, 0); };
+  document.getElementById("pmeta").innerHTML =
+    "<span>"+(p.hand==="L"?"左投げ（鏡像表示）":"右投げ")+"</span>"+
+    "<span>基準 <b>"+(p.ref==="FF"?"FF":p.ref)+"</b></span>"+
+    (p.ff != null ? "<span>フォーシーム <b>"+Math.round(100*p.ff)+"%</b></span>" : "")+
+    "<span>グラブ側 <b>"+Math.round(100*sum("glove"))+"%</b></span><span>腕側 <b>"+Math.round(100*sum("arm"))+"%</b></span>";
+  drawFan(p); drawArm(p); drawMap(p); drawTables(p);
+}
+function go(k){ cur = (k + P.length) % P.length; draw(); }
+document.getElementById("prev").addEventListener("click", function(){ go(cur-1); });
+document.getElementById("next").addEventListener("click", function(){ go(cur+1); });
+document.getElementById("q").addEventListener("change", function(e){
+  var v = e.target.value.trim().toLowerCase(); if(!v) return;
+  var k = P.findIndex(function(p){ return p.name.toLowerCase()===v; });
+  if(k < 0) k = P.findIndex(function(p){ return p.name.toLowerCase().indexOf(v) >= 0; });
+  if(k >= 0) go(k);
+});
+document.querySelectorAll("[data-mode]").forEach(function(b){
+  b.addEventListener("click", function(){
+    mode = b.dataset.mode;
+    document.querySelectorAll("[data-mode]").forEach(function(o){ o.setAttribute("aria-pressed", o===b); });
+    draw();
+  });
+});
+draw();
+var mq = window.matchMedia("(prefers-color-scheme: dark)");
+if(mq.addEventListener) mq.addEventListener("change", draw);
+new MutationObserver(draw).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
+})();
+</script>
+</body>
+</html>
